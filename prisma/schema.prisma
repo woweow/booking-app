@@ -1,0 +1,356 @@
+// Prisma Schema for Studio Saturn Booking App
+// All 17 models with complete relations, indexes, and constraints
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  CLIENT
+  ARTIST
+}
+
+enum BookingStatus {
+  PENDING
+  INFO_REQUESTED
+  APPROVED
+  AWAITING_DEPOSIT
+  CONFIRMED
+  COMPLETED
+  DECLINED
+  CANCELLED
+}
+
+enum BookingType {
+  FLASH
+  CUSTOM
+  AD_HOC
+}
+
+enum BookType {
+  FLASH
+  CUSTOM
+}
+
+enum TattooSize {
+  SMALL
+  MEDIUM
+  LARGE
+  EXTRA_LARGE
+}
+
+enum TimeBlockType {
+  APPOINTMENT
+  BLOCKED_OFF
+}
+
+enum ExceptionType {
+  UNAVAILABLE
+  CUSTOM_HOURS
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  role          UserRole  @default(CLIENT)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Account lockout fields
+  failedLoginAttempts Int       @default(0)
+  lastFailedLoginAt   DateTime?
+  lockedUntil         DateTime?
+
+  // Relationships
+  bookings          Booking[]
+  messagesSent      Message[]          @relation("MessageSender")
+  messagesReceived  Message[]          @relation("MessageReceiver")
+  consentForms      ConsentForm[]
+  googleConnection  GoogleConnection?
+}
+
+model Booking {
+  id       String @id @default(cuid())
+  clientId String
+  client   User   @relation(fields: [clientId], references: [id])
+
+  status      BookingStatus @default(PENDING)
+  bookingType BookingType
+
+  // Optional book/flash associations
+  bookId       String?
+  book         Book?       @relation(fields: [bookId], references: [id])
+  flashPieceId String?
+  flashPiece   FlashPiece? @relation(fields: [flashPieceId], references: [id])
+
+  // Request details
+  description    String
+  size           TattooSize
+  placement      String
+  isFirstTattoo  Boolean    @default(false)
+  preferredDates String     // JSON array of ISO date strings
+  medicalNotes   String?
+
+  // Confirmed details (populated when appointment scheduled)
+  appointmentDate DateTime?
+  duration        Int?       // in minutes
+  depositAmount   Int?       // in cents
+  totalAmount     Int?       // in cents
+  artistNotes     String?
+  declineReason   String?
+
+  // Payment tracking
+  stripePaymentIntentId String?
+  depositPaidAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  photos        BookingPhoto[]
+  consentForm   ConsentForm?
+  notifications ScheduledNotification[]
+  timeBlocks    TimeBlock[]
+  bookingLink   BookingLink?
+}
+
+model BookingPhoto {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  blobUrl   String   // Vercel Blob URL
+  filename  String
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([senderId, receiverId])
+}
+
+model ConsentForm {
+  id        String  @id @default(cuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  // Personal information
+  fullLegalName    String
+  dateOfBirth      DateTime
+  address          String
+  emergencyContact String
+  emergencyPhone   String
+
+  // Medical fields (ENCRYPTED at rest)
+  skinConditions   String?
+  allergies        String?
+  medications      String?
+  bloodDisorders   String?
+  isPregnant       String?
+  recentSubstances String?
+
+  // Agreements/Acknowledgments
+  risksAcknowledged  Boolean @default(false)
+  aftercareAgreed    Boolean @default(false)
+  photoReleaseAgreed Boolean @default(false)
+
+  // Legal signature
+  signatureDataUrl String
+  signedAt         DateTime
+
+  createdAt DateTime @default(now())
+}
+
+model ScheduledNotification {
+  id           String    @id @default(cuid())
+  bookingId    String
+  booking      Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type         String    // REMINDER_1WEEK, REMINDER_1DAY, REMINDER_2HOURS
+  scheduledFor DateTime
+  sentAt       DateTime?
+  channel      String    // EMAIL, SMS, BOTH
+  createdAt    DateTime  @default(now())
+
+  @@index([scheduledFor, sentAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  userId       String?
+  userEmail    String?
+  action       String
+  resourceType String?
+  resourceId   String?
+  ipAddress    String?
+  userAgent    String?
+  result       String
+  details      String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([resourceType, resourceId])
+}
+
+model ProcessedWebhookEvent {
+  id           String   @id @default(cuid())
+  eventId      String   @unique
+  eventType    String
+  processedAt  DateTime @default(now())
+  eventCreated DateTime
+
+  @@index([eventCreated])
+  @@index([processedAt])
+}
+
+model Book {
+  id          String    @id @default(cuid())
+  name        String
+  type        BookType
+  description String?
+  isActive    Boolean   @default(true)
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+
+  // Per-day operating hours (HH:MM format, null = closed)
+  mondayStart    String?
+  mondayEnd      String?
+  tuesdayStart   String?
+  tuesdayEnd     String?
+  wednesdayStart String?
+  wednesdayEnd   String?
+  thursdayStart  String?
+  thursdayEnd    String?
+  fridayStart    String?
+  fridayEnd      String?
+  saturdayStart  String?
+  saturdayEnd    String?
+  sundayStart    String?
+  sundayEnd      String?
+
+  bookings    Booking[]
+  flashPieces FlashPiece[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FlashPiece {
+  id                 String           @id @default(cuid())
+  bookId             String
+  book               Book             @relation(fields: [bookId], references: [id])
+  name               String
+  description        String?
+  imageUrl           String
+  isRepeatable       Boolean          @default(true)
+  isClaimed          Boolean          @default(false)
+  claimedByBookingId String?
+  sizes              FlashPieceSize[]
+  bookings           Booking[]
+  createdAt          DateTime         @default(now())
+}
+
+model FlashPieceSize {
+  id               String     @id @default(cuid())
+  flashPieceId     String
+  flashPiece       FlashPiece @relation(fields: [flashPieceId], references: [id], onDelete: Cascade)
+  size             TattooSize
+  priceAmountCents Int
+  durationMinutes  Int
+
+  @@unique([flashPieceId, size])
+}
+
+model BookingLink {
+  id                 String   @id @default(cuid())
+  token              String   @unique
+  clientEmail        String?
+  date               DateTime @db.Date
+  startTime          String   // HH:MM
+  endTime            String   // HH:MM
+  depositAmountCents Int
+  expiresAt          DateTime
+  isUsed             Boolean  @default(false)
+  usedByBookingId    String?  @unique
+  usedByBooking      Booking? @relation(fields: [usedByBookingId], references: [id])
+  createdAt          DateTime @default(now())
+}
+
+model TimeBlock {
+  id            String        @id @default(cuid())
+  date          DateTime      @db.Date
+  startTime     String        // HH:MM
+  endTime       String        // HH:MM
+  type          TimeBlockType
+  bookingId     String?
+  booking       Booking?      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  notes         String?
+  googleEventId String?
+  createdAt     DateTime      @default(now())
+
+  @@index([date])
+  @@index([bookingId])
+}
+
+model AvailabilityException {
+  id              String        @id @default(cuid())
+  date            DateTime      @unique @db.Date
+  type            ExceptionType
+  customStartTime String?
+  customEndTime   String?
+  reason          String?
+  createdAt       DateTime      @default(now())
+}
+
+model GoogleConnection {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email             String
+  accessToken       String
+  refreshToken      String
+  accessTokenExpiry DateTime
+  calendarId        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

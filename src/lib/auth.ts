@@ -2,16 +2,13 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/db";
-import { UserRole } from "@/generated/prisma/enums";
+import { UserRole } from "@prisma/client";
 import {
   checkAccountLockout,
   recordFailedLoginAttempt,
   resetFailedLoginAttempts,
 } from "@/lib/account-lockout";
 import { logLoginSuccess, logLoginFailure } from "@/lib/audit";
-
-// Ensure extended types are loaded
-import "@/lib/types/next-auth";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {

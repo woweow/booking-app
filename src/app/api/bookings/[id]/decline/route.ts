@@ -30,10 +30,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (
       booking.status !== BookingStatus.PENDING &&
-      booking.status !== BookingStatus.INFO_REQUESTED
+      booking.status !== BookingStatus.INFO_REQUESTED &&
+      booking.status !== BookingStatus.AWAITING_DEPOSIT
     ) {
       return NextResponse.json(
-        { error: "Only pending or info-requested bookings can be declined" },
+        { error: "Only pending, info-requested, or awaiting-deposit bookings can be declined" },
         { status: 400 }
       );
     }
@@ -57,6 +58,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         photos: true,
       },
     });
+
+    // Unclaim flash piece if applicable
+    if (booking.bookingType === "FLASH" && booking.flashPieceId) {
+      const piece = await prisma.flashPiece.findUnique({
+        where: { id: booking.flashPieceId },
+      });
+      if (piece && !piece.isRepeatable && piece.claimedByBookingId === booking.id) {
+        await prisma.flashPiece.update({
+          where: { id: piece.id },
+          data: { isClaimed: false, claimedByBookingId: null },
+        });
+      }
+    }
 
     await createAuditLog({
       action: AuditAction.BOOKING_DECLINED,

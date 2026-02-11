@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
         client: {
           select: { id: true, name: true, email: true, phone: true },
         },
+        flashPiece: {
+          select: { id: true, name: true, imageUrl: true },
+        },
         _count: { select: { photos: true } },
       },
       orderBy: { createdAt: "desc" },

@@ -28,6 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         book: {
           select: { id: true, name: true, type: true, depositAmountCents: true },
         },
+        flashPiece: { include: { sizes: true } },
       },
     });
 
@@ -265,6 +266,19 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: { id },
       data: { status: BookingStatus.CANCELLED },
     });
+
+    // Unclaim flash piece if applicable
+    if (booking.bookingType === "FLASH" && booking.flashPieceId) {
+      const piece = await prisma.flashPiece.findUnique({
+        where: { id: booking.flashPieceId },
+      });
+      if (piece && !piece.isRepeatable && piece.claimedByBookingId === booking.id) {
+        await prisma.flashPiece.update({
+          where: { id: piece.id },
+          data: { isClaimed: false, claimedByBookingId: null },
+        });
+      }
+    }
 
     // Cancel pending notifications (non-blocking)
     cancelBookingNotifications(id).catch((err) =>

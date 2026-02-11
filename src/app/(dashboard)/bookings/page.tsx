@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Search, Plus, CalendarDays, Loader2 } from "lucide-react";
@@ -31,9 +31,7 @@ export default function BookingsPage() {
     async function fetchBookings() {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        if (tab !== "all") params.set("status", tab);
-        const res = await fetch(`/api/bookings?${params}`);
+        const res = await fetch(`/api/bookings`);
         if (res.ok) {
           const data = await res.json();
           setBookings(Array.isArray(data) ? data : data.bookings || []);
@@ -46,10 +44,24 @@ export default function BookingsPage() {
     }
 
     fetchBookings();
-  }, [tab]);
+  }, []);
+
+  const tabFiltered = useMemo(
+    () => tab === "all" ? bookings : bookings.filter((b) => b.status === tab),
+    [bookings, tab]
+  );
+
+  const pendingCount = useMemo(
+    () => bookings.filter((b) => b.status === "PENDING").length,
+    [bookings]
+  );
+  const confirmedCount = useMemo(
+    () => bookings.filter((b) => b.status === "CONFIRMED").length,
+    [bookings]
+  );
 
   const filtered = search
-    ? bookings.filter((b) => {
+    ? tabFiltered.filter((b) => {
         const q = search.toLowerCase();
         return (
           b.description.toLowerCase().includes(q) ||
@@ -58,7 +70,7 @@ export default function BookingsPage() {
           b.client?.email.toLowerCase().includes(q)
         );
       })
-    : bookings;
+    : tabFiltered;
 
   return (
     <div className="space-y-6">
@@ -82,11 +94,22 @@ export default function BookingsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <Tabs value={tab} onValueChange={setTab} className="w-full sm:w-auto">
           <TabsList>
-            {TABS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
+            {TABS.map((t) => {
+              const count =
+                t.value === "PENDING" ? pendingCount :
+                t.value === "CONFIRMED" ? confirmedCount :
+                0;
+              return (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                  {count > 0 && (
+                    <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1 text-xs font-medium text-muted-foreground">
+                      {count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
         </Tabs>
 

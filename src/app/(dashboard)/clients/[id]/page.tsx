@@ -41,7 +41,7 @@ export default function ClientDetailPage() {
   useEffect(() => {
     async function fetchClient() {
       try {
-        const res = await fetch(`/api/users/clients/${params.id}`);
+        const res = await fetch(`/api/clients/${params.id}`);
         if (res.ok) {
           setClient(await res.json());
         }

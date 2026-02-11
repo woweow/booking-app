@@ -29,7 +29,7 @@ export default function ClientsPage() {
   useEffect(() => {
     async function fetchClients() {
       try {
-        const res = await fetch("/api/users/clients");
+        const res = await fetch("/api/clients");
         if (res.ok) {
           const data = await res.json();
           setClients(Array.isArray(data) ? data : data.clients || []);

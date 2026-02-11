@@ -308,7 +308,7 @@ function FlashBookingContent() {
                   <span className="font-medium">
                     $
                     {(
-                      (selectedSizeData.priceAmountCents - depositAmount) /
+                      Math.max(0, selectedSizeData.priceAmountCents - depositAmount) /
                       100
                     ).toFixed(2)}
                   </span>
@@ -444,7 +444,7 @@ function FlashBookingContent() {
                   <span className="font-medium">
                     $
                     {(
-                      (selectedSizeData.priceAmountCents - depositAmount) /
+                      Math.max(0, selectedSizeData.priceAmountCents - depositAmount) /
                       100
                     ).toFixed(2)}
                   </span>

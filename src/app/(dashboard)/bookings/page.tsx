@@ -65,7 +65,7 @@ export default function BookingsPage() {
         const q = search.toLowerCase();
         return (
           b.description.toLowerCase().includes(q) ||
-          b.placement.toLowerCase().includes(q) ||
+          b.placement?.toLowerCase().includes(q) ||
           b.client?.name.toLowerCase().includes(q) ||
           b.client?.email.toLowerCase().includes(q)
         );

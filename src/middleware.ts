@@ -13,6 +13,8 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/api/auth/")) return true;
   if (pathname.startsWith("/api/webhooks/")) return true;
   if (pathname.startsWith("/api/cron/")) return true;
+  if (pathname.startsWith("/api/flash-catalog/")) return true;
+  if (pathname.startsWith("/flash/")) return true;
   return false;
 }
 

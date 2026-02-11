@@ -34,7 +34,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const flashPieces = await prisma.flashPiece.findMany({
       where: { bookId },
-      include: { sizes: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        imageUrl: true,
+        isRepeatable: true,
+        isClaimed: true,
+        sizes: {
+          select: {
+            id: true,
+            size: true,
+            priceAmountCents: true,
+            durationMinutes: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 

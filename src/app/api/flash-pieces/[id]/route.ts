@@ -170,6 +170,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Nullify flashPieceId on terminal bookings to avoid FK constraint
+    await prisma.booking.updateMany({
+      where: { flashPieceId: id },
+      data: { flashPieceId: null },
+    });
+
     // Delete the piece (sizes cascade via onDelete: Cascade)
     await prisma.flashPiece.delete({ where: { id } });
 

@@ -38,7 +38,7 @@ type ConsentFormPDFProps = {
     signedAt: Date;
     createdAt: Date;
     user: { name: string; email: string };
-    booking: { appointmentDate: Date | null; placement: string; size: string };
+    booking: { appointmentDate: Date | null; placement: string | null; size: string };
   };
 };
 
@@ -98,7 +98,7 @@ export function ConsentFormPDF({ consentForm }: ConsentFormPDFProps) {
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Placement:</Text>
-            <Text style={styles.value}>{consentForm.booking.placement}</Text>
+            <Text style={styles.value}>{consentForm.booking.placement || "N/A"}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Size:</Text>

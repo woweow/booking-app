@@ -267,6 +267,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       data: { status: BookingStatus.CANCELLED },
     });
 
+    // Delete associated time blocks so the slot becomes available again
+    await prisma.timeBlock.deleteMany({ where: { bookingId: id } });
+
     // Unclaim flash piece if applicable
     if (booking.bookingType === "FLASH" && booking.flashPieceId) {
       const piece = await prisma.flashPiece.findUnique({

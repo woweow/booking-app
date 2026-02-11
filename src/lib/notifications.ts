@@ -113,7 +113,7 @@ export async function processScheduledNotifications(): Promise<{
       // Send based on notification type
       if (notification.type === "REMINDER_1WEEK" || notification.type === "REMINDER_1DAY") {
         if (shouldEmail) {
-          const email = appointmentReminderEmail(client.name, apptDate, booking.placement);
+          const email = appointmentReminderEmail(client.name, apptDate, booking.placement || "N/A");
           emailSent = await sendEmail(client.email, email.subject, email.html);
         }
         if (shouldSMS && client.phone) {

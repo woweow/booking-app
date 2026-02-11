@@ -93,6 +93,17 @@ export async function POST(request: NextRequest) {
 
     const durationMinutes = pieceSize.durationMinutes;
 
+    // Compute expected endTime from startTime + duration (don't trust client endTime)
+    const [startH, startM] = startTime.split(":").map(Number);
+    const startTotalMin = startH * 60 + startM;
+    const endTotalMin = startTotalMin + durationMinutes;
+    const computedEndTime = `${Math.floor(endTotalMin / 60)
+      .toString()
+      .padStart(2, "0")}:${(endTotalMin % 60).toString().padStart(2, "0")}`;
+
+    // Use computed end time for the booking (overrides client-provided endTime)
+    const bookingEndTime = computedEndTime;
+
     // Serializable transaction
     const txResult = await prisma.$transaction(
       async (tx) => {
@@ -100,7 +111,7 @@ export async function POST(request: NextRequest) {
         const overlapping = await tx.timeBlock.findFirst({
           where: {
             date: new Date(date),
-            OR: [{ startTime: { lt: endTime }, endTime: { gt: startTime } }],
+            OR: [{ startTime: { lt: bookingEndTime }, endTime: { gt: startTime } }],
           },
         });
 
@@ -123,7 +134,7 @@ export async function POST(request: NextRequest) {
           data: {
             date: new Date(date),
             startTime,
-            endTime,
+            endTime: bookingEndTime,
             type: TimeBlockType.APPOINTMENT,
           },
         });
@@ -142,7 +153,7 @@ export async function POST(request: NextRequest) {
             preferredDates: "[]",
             appointmentDate: new Date(date),
             scheduledStartTime: startTime,
-            scheduledEndTime: endTime,
+            scheduledEndTime: bookingEndTime,
             duration: durationMinutes,
             depositAmount: book.depositAmountCents,
             totalAmount: pieceSize.priceAmountCents,
@@ -244,7 +255,7 @@ export async function POST(request: NextRequest) {
         size: selectedSize,
         date,
         startTime,
-        endTime,
+        endTime: bookingEndTime,
       },
       request,
     });

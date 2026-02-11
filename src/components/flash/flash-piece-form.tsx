@@ -94,6 +94,9 @@ export function FlashPieceForm({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setImagePreview(URL.createObjectURL(file));
     setUploading(true);
 
@@ -140,6 +143,19 @@ export function FlashPieceForm({
       sizes.some((s) => !s.size || !s.price || !s.duration)
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (
+      sizes.some(
+        (s) =>
+          isNaN(parseFloat(s.price)) ||
+          parseFloat(s.price) < 1 ||
+          isNaN(parseInt(s.duration, 10)) ||
+          parseInt(s.duration, 10) < 15
+      )
+    ) {
+      toast.error("Price must be at least $1 and duration at least 15 minutes");
       return;
     }
 

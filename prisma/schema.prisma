@@ -101,7 +101,7 @@ model Booking {
   // Request details
   description    String
   size           TattooSize
-  placement      String
+  placement      String?
   isFirstTattoo  Boolean    @default(false)
   preferredDates String     // JSON array of ISO date strings
   medicalNotes   String?

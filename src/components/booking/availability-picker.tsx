@@ -63,9 +63,11 @@ export function AvailabilityPicker({
   const [loadingMonth, setLoadingMonth] = useState(true);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [pickedDate, setPickedDate] = useState<string | null>(selectedDate || null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchMonth = useCallback(async () => {
     setLoadingMonth(true);
+    setError(null);
     try {
       const monthStr = format(currentMonth, "yyyy-MM");
       const res = await fetch(
@@ -74,9 +76,14 @@ export function AvailabilityPicker({
       if (res.ok) {
         const data = await res.json();
         setAvailability(data.availability || {});
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Availability fetch failed:", res.status, errData);
+        setError(errData.error || `Failed to load availability (${res.status})`);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("Availability fetch error:", err);
+      setError("Failed to load availability");
     } finally {
       setLoadingMonth(false);
     }
@@ -151,6 +158,12 @@ export function AvailabilityPicker({
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       {loadingMonth ? (
         <div className="flex items-center justify-center py-8">

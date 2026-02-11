@@ -24,6 +24,11 @@ const DAY_NAMES = [
   "saturday",
 ] as const;
 
+/** Strip time component for date-only comparison (avoids TZ issues with @db.Date) */
+function toDateOnly(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
@@ -50,9 +55,10 @@ export async function getBookAvailability(
 
   if (!book || !book.isActive) return null;
 
-  // Check date range
-  if (book.startDate && date < book.startDate) return null;
-  if (book.endDate && date > book.endDate) return null;
+  // Check date range (compare date strings to avoid TZ issues with @db.Date)
+  const dateOnly = toDateOnly(date);
+  if (book.startDate && dateOnly < toDateOnly(book.startDate)) return null;
+  if (book.endDate && dateOnly > toDateOnly(book.endDate)) return null;
 
   const day = getDayName(date);
   const startField = `${day}Start` as keyof typeof book;

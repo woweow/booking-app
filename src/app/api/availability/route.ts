@@ -66,8 +66,17 @@ export async function GET(request: NextRequest) {
       const startDate = new Date(year, monthNum - 1, 1);
       const endDate = new Date(year, monthNum, 0);
 
+      const book = await prisma.book.findUnique({ where: { id: bookId } });
+      if (!book) {
+        return NextResponse.json({ error: "Book not found", bookId }, { status: 404 });
+      }
+
+      console.log("[availability] Mode 2:", { bookId, month, duration, bookActive: book.isActive, bookStart: book.startDate, bookEnd: book.endDate, thurStart: book.thursdayStart, satStart: book.saturdayStart });
+
       const availability = await getAvailabilityForDateRange(bookId, startDate, endDate, duration);
       const availabilityObj = Object.fromEntries(availability);
+      const availCount = Object.values(availabilityObj).filter(Boolean).length;
+      console.log("[availability] Result:", { totalDates: Object.keys(availabilityObj).length, availableDates: availCount });
 
       return NextResponse.json({ month, bookId, availability: availabilityObj });
     }

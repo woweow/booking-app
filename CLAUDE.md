@@ -1,3 +1,4 @@
+- This website is in development. NOTHING is permanent. New data model? Total class refactor? Go for it! Make it the best it can be. Code is cheap and we've got no users
 - This is a booking app for my wife. You never use her name in the app but instead use a placeholder name - Jane. Her studio is called "studio saturn" and will also be replaced with a real name later
 - When running an agent team, ask every agent to commit their work frequently and at the end of their task.
 - This website UI **MUST** be optimized for mobile as well as dekstop

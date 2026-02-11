@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Loader2, Pencil } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Link as LinkIcon,
+  Loader2,
+  Pencil,
+  Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +25,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FlashPieceStats } from "@/components/flash/flash-piece-stats";
+import { FlashPieceGrid } from "@/components/flash/flash-piece-grid";
+import { FlashPieceForm } from "@/components/flash/flash-piece-form";
 
 const DAYS = [
   "monday",
@@ -31,6 +41,17 @@ const DAYS = [
 
 type DayHours = { start: string; end: string } | null;
 type AvailableHours = Record<string, DayHours>;
+
+type FlashPieceWithSizes = {
+  id: string;
+  name: string;
+  description?: string | null;
+  imageUrl: string;
+  isRepeatable: boolean;
+  isClaimed: boolean;
+  sizes: { size: string; priceAmountCents: number; durationMinutes: number }[];
+  _count: { bookings: number };
+};
 
 type BookDetail = {
   id: string;
@@ -75,6 +96,9 @@ export default function BookDetailPage() {
   const [depositAmount, setDepositAmount] = useState("");
   const [editingDates, setEditingDates] = useState(false);
   const [editingDeposit, setEditingDeposit] = useState(false);
+  const [flashPieces, setFlashPieces] = useState<FlashPieceWithSizes[]>([]);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingPiece, setEditingPiece] = useState<FlashPieceWithSizes | null>(null);
 
   useEffect(() => {
     async function fetchBook() {
@@ -103,6 +127,47 @@ export default function BookDetailPage() {
 
     fetchBook();
   }, [params.id]);
+
+  async function fetchFlashPieces() {
+    try {
+      const res = await fetch(`/api/books/${params.id}/flash-pieces`);
+      if (res.ok) {
+        const data = await res.json();
+        setFlashPieces(data.flashPieces);
+      }
+    } catch {
+      /* silently fail */
+    }
+  }
+
+  useEffect(() => {
+    if (book?.type === "FLASH") fetchFlashPieces();
+  }, [book?.type]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleDeleteFlashPiece(piece: FlashPieceWithSizes) {
+    if (!confirm(`Delete "${piece.name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/flash-pieces/${piece.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success("Flash piece deleted");
+        fetchFlashPieces();
+      } else if (res.status === 409) {
+        toast.error("Cannot delete — this piece has active bookings");
+      } else {
+        toast.error("Failed to delete");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    }
+  }
+
+  function handleCopyCatalogLink() {
+    const url = `${window.location.origin}/flash/${params.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Catalog link copied to clipboard");
+  }
 
   function updateDay(day: string, field: "start" | "end", value: string) {
     setHours((prev) => ({
@@ -485,19 +550,66 @@ export default function BookDetailPage() {
       </Card>
 
       {book.type === "FLASH" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-medium">Flash Pieces</CardTitle>
-            <CardDescription>
-              Manage the flash designs in this book
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              Flash piece management coming soon
-            </p>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <FlashPieceStats pieces={flashPieces} />
+
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="font-medium">Flash Pieces</CardTitle>
+                  <CardDescription>
+                    Manage the flash designs in this book
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyCatalogLink}
+                  >
+                    <LinkIcon className="mr-1 size-3" />
+                    Copy Link
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setEditingPiece(null);
+                      setFormOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-1 size-4" />
+                    Add Piece
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {flashPieces.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No flash pieces yet. Add your first design!
+                </p>
+              ) : (
+                <FlashPieceGrid
+                  pieces={flashPieces}
+                  onEdit={(p) => {
+                    setEditingPiece(p);
+                    setFormOpen(true);
+                  }}
+                  onDelete={handleDeleteFlashPiece}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <FlashPieceForm
+            open={formOpen}
+            onOpenChange={setFormOpen}
+            bookId={params.id as string}
+            piece={editingPiece}
+            onSuccess={fetchFlashPieces}
+          />
+        </div>
       )}
     </div>
   );

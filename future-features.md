@@ -3,3 +3,4 @@
 
 # UX
 - Making navigating to collect payment button a single tap away from the chat interface
+- able to send clients an estimate of total cost when approving

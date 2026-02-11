@@ -147,7 +147,7 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
           ? "Booking updated successfully!"
           : "Booking request submitted successfully!"
       );
-      router.push(`/bookings/${result.id || bookingId}`);
+      router.push(`/bookings/${result.booking?.id || bookingId}`);
       router.refresh();
     } catch {
       toast.error("Something went wrong. Please try again.");

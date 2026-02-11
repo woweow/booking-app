@@ -1,0 +1,5 @@
+Image uploads for booking requests:
+- Photos are uploaded to Vercel Blob storage via @vercel/blob
+- You need to add BLOB_READ_WRITE_TOKEN to .env.local
+- Get it from: Vercel Dashboard → Storage → your blob store → Settings
+- Without this token, all image uploads will 500

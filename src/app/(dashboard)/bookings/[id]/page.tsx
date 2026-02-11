@@ -73,7 +73,7 @@ type BookingDetail = {
   bookingType: string;
   description: string;
   size: string;
-  placement: string;
+  placement?: string | null;
   isFirstTattoo: boolean;
   preferredDates: string;
   medicalNotes?: string | null;
@@ -101,6 +101,13 @@ type BookingDetail = {
     name: string;
     type: string;
     depositAmountCents?: number | null;
+  } | null;
+  flashPiece?: {
+    id: string;
+    name: string;
+    description?: string | null;
+    imageUrl: string;
+    sizes: { size: string; priceAmountCents: number; durationMinutes: number }[];
   } | null;
 };
 
@@ -328,7 +335,7 @@ function BookingDetailContent() {
 
           {!isArtist && (
             <div className="flex gap-2">
-              {canEdit && (
+              {canEdit && booking.bookingType !== "FLASH" && (
                 <Button variant="outline" asChild>
                   <Link href={`/bookings/${booking.id}/edit`}>
                     Edit Booking
@@ -449,69 +456,102 @@ function BookingDetailContent() {
           )}
 
           {/* Tattoo details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-medium">
-                Tattoo Request Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Description</p>
-                <p className="mt-1">{booking.description}</p>
-              </div>
-
-              <Separator />
-
-              <div className="flex flex-wrap gap-4">
+          {booking.bookingType === "FLASH" && booking.flashPiece ? (
+            <Card>
+              <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Ruler className="size-4 text-muted-foreground" />
-                  <Badge variant="secondary">
-                    {sizeLabels[booking.size] || booking.size}
-                  </Badge>
+                  <CardTitle className="font-medium">Flash Design</CardTitle>
+                  <Badge className="bg-[hsl(270_60%_55%)] text-white text-xs">Flash</Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="size-4 text-muted-foreground" />
-                  <span className="text-sm">{booking.placement}</span>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <img
+                  src={booking.flashPiece.imageUrl}
+                  alt={booking.flashPiece.name}
+                  className="w-full max-w-sm rounded-lg object-contain"
+                />
+                <div>
+                  <p className="font-medium">{booking.flashPiece.name}</p>
+                  {booking.flashPiece.description && (
+                    <p className="mt-1 text-sm text-muted-foreground">{booking.flashPiece.description}</p>
+                  )}
                 </div>
-                {booking.isFirstTattoo && (
-                  <Badge variant="outline">First Tattoo</Badge>
-                )}
-              </div>
+                <Separator />
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <Ruler className="size-4 text-muted-foreground" />
+                    <Badge variant="secondary">{sizeLabels[booking.size] || booking.size}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-medium">
+                  Tattoo Request Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Description</p>
+                  <p className="mt-1">{booking.description}</p>
+                </div>
 
-              {preferredDates.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Preferred Dates
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {preferredDates
-                        .filter((date) => date && !isNaN(new Date(date).getTime()))
-                        .map((date) => (
-                          <Badge key={date} variant="secondary">
-                            {format(new Date(date), "EEEE, MMMM d, yyyy")}
-                          </Badge>
-                        ))}
+                <Separator />
+
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <Ruler className="size-4 text-muted-foreground" />
+                    <Badge variant="secondary">
+                      {sizeLabels[booking.size] || booking.size}
+                    </Badge>
+                  </div>
+                  {booking.placement && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="size-4 text-muted-foreground" />
+                      <span className="text-sm">{booking.placement}</span>
                     </div>
-                  </div>
-                </>
-              )}
+                  )}
+                  {booking.isFirstTattoo && (
+                    <Badge variant="outline">First Tattoo</Badge>
+                  )}
+                </div>
 
-              {booking.medicalNotes && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Medical Notes
-                    </p>
-                    <p className="mt-1 text-sm">{booking.medicalNotes}</p>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                {preferredDates.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Preferred Dates
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {preferredDates
+                          .filter((date) => date && !isNaN(new Date(date).getTime()))
+                          .map((date) => (
+                            <Badge key={date} variant="secondary">
+                              {format(new Date(date), "EEEE, MMMM d, yyyy")}
+                            </Badge>
+                          ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {booking.medicalNotes && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Medical Notes
+                      </p>
+                      <p className="mt-1 text-sm">{booking.medicalNotes}</p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Photos */}
           {booking.photos && booking.photos.length > 0 && (

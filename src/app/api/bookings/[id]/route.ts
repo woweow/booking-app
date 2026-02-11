@@ -127,13 +127,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           where: { id },
           data: {
             status: BookingStatus.INFO_REQUESTED,
-            artistNotes: infoResult.data.artistNotes,
+            chatEnabled: true,
           },
           include: {
             client: { select: { id: true, name: true, email: true, phone: true } },
             photos: true,
           },
         });
+
+        // Send the artist's message as a chat message
+        if (infoResult.data.artistNotes) {
+          await prisma.message.create({
+            data: {
+              bookingId: id,
+              senderId: session.user.id,
+              content: infoResult.data.artistNotes,
+            },
+          });
+        }
 
         await createAuditLog({
           action: AuditAction.BOOKING_UPDATED,

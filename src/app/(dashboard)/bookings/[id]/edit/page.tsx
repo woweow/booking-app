@@ -28,7 +28,8 @@ export default function EditBookingPage() {
       try {
         const res = await fetch(`/api/bookings/${params.id}`);
         if (res.ok) {
-          setBooking(await res.json());
+          const data = await res.json();
+          setBooking(data.booking ?? data);
         }
       } catch {
         // silently fail

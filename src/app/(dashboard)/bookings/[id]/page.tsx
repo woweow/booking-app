@@ -573,40 +573,15 @@ function BookingDetailContent() {
             </Card>
           )}
 
-          {/* Chat */}
-          {isArtist ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-medium">
-                  <MessageSquare className="size-5" />
-                  Chat
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button asChild className="w-full">
-                  <Link href={`/messages?bookingId=${booking.id}`}>
-                    Open Chat
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : booking.chatEnabled ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-medium">
-                  <MessageSquare className="size-5" />
-                  Chat
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button asChild className="w-full">
-                  <Link href={`/messages?bookingId=${booking.id}`}>
-                    Chat with Jane
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
+          {/* Chat link */}
+          {(isArtist || booking.chatEnabled) && (
+            <Button asChild variant="outline" className="w-full gap-2">
+              <Link href={`/messages?bookingId=${booking.id}`}>
+                <MessageSquare className="size-4" />
+                View Messages
+              </Link>
+            </Button>
+          )}
 
           {/* Artist actions */}
           {isArtist && (

@@ -450,7 +450,7 @@ function BookingDetailContent() {
                 {booking.duration && (
                   <div className="flex items-center gap-3">
                     <Clock className="size-5 text-muted-foreground" />
-                    <span>{booking.duration} minutes</span>
+                    <span>{booking.duration >= 60 ? `${booking.duration / 60} hours` : `${booking.duration} minutes`}</span>
                   </div>
                 )}
               </CardContent>

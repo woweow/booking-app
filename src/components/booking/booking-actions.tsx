@@ -50,7 +50,7 @@ import { format } from "date-fns";
 const approveFormSchema = z.object({
   appointmentDate: z.string().min(1, "Appointment date is required"),
   appointmentTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
-  duration: z.number().int().positive(),
+  duration: z.number().positive(),
   depositAmount: z.number().positive("Deposit amount must be positive"),
   totalAmount: z.number().positive().optional(),
   artistNotes: z.string().optional(),
@@ -75,7 +75,7 @@ function ApproveDialog({
     defaultValues: {
       appointmentDate: "",
       appointmentTime: "",
-      duration: 120,
+      duration: 2,
       depositAmount: 100,
       totalAmount: undefined,
       artistNotes: "",
@@ -89,7 +89,10 @@ function ApproveDialog({
       const response = await fetch(`/api/bookings/${bookingId}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          duration: values.duration * 60,
+        }),
       });
 
       if (!response.ok) {
@@ -181,14 +184,18 @@ function ApproveDialog({
               name="duration"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Duration (minutes)</FormLabel>
+                  <FormLabel>Duration (hours)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
-                      min={15}
-                      step={15}
+                      min={1}
+                      step={1}
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value === "" ? "" : field.value}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? "" : Number(val));
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

@@ -103,7 +103,7 @@ export default function BookingsPage() {
                 <TabsTrigger key={t.value} value={t.value}>
                   {t.label}
                   {count > 0 && (
-                    <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1 text-xs font-medium text-muted-foreground">
+                    <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-background/80 px-1 text-xs font-medium text-muted-foreground shadow-sm ring-1 ring-border/50">
                       {count}
                     </span>
                   )}

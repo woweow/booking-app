@@ -214,10 +214,11 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
                 {errors.description && (
                   <span className="text-destructive">{errors.description}</span>
                 )}
-                <span className="ml-auto">
-                  {formData.description.length} characters
-                  {formData.description.length < 10 && " (min 10)"}
-                </span>
+                {formData.description.length < 10 && (
+                  <span className="ml-auto">
+                    {formData.description.length} characters (min 10)
+                  </span>
+                )}
               </div>
             </div>
 

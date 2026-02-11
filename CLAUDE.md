@@ -2,3 +2,4 @@
 - This is a booking app for my wife. You never use her name in the app but instead use a placeholder name - Jane. Her studio is called "studio saturn" and will also be replaced with a real name later
 - When running an agent team, ask every agent to commit their work frequently and at the end of their task.
 - This website UI **MUST** be optimized for mobile as well as dekstop
+- If a db schema change is breaking such that existing data must be cleansed you MUST notify me of this at the end of your task

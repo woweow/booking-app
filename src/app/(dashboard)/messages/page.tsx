@@ -89,7 +89,7 @@ function ClientMessages({ userId }: { userId: string }) {
   }
 
   return (
-    <Card className="flex h-[calc(100svh-16rem)] flex-col overflow-hidden">
+    <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-medium">Chat with Jane</h2>
       </div>
@@ -164,9 +164,9 @@ function ArtistMessages({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="h-[calc(100svh-16rem)]">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Desktop: two-panel */}
-      <div className="hidden h-full gap-4 lg:grid lg:grid-cols-3">
+      <div className="hidden min-h-0 flex-1 gap-4 lg:grid lg:grid-cols-3">
         {/* Conversations list */}
         <Card className="overflow-y-auto">
           <div className="border-b border-border px-4 py-3">
@@ -217,9 +217,9 @@ function ArtistMessages({ userId }: { userId: string }) {
       </div>
 
       {/* Mobile: single panel */}
-      <div className="h-full lg:hidden">
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
         {!mobileShowThread || !selectedThread ? (
-          <Card className="h-full overflow-y-auto">
+          <Card className="min-h-0 flex-1 overflow-y-auto">
             <div className="border-b border-border px-4 py-3">
               <h2 className="text-sm font-medium">Conversations</h2>
               <p className="text-xs text-muted-foreground">
@@ -243,7 +243,7 @@ function ArtistMessages({ userId }: { userId: string }) {
             )}
           </Card>
         ) : (
-          <Card className="flex h-full flex-col overflow-hidden">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="border-b border-border px-4 py-3">
               <div className="flex items-center gap-2">
                 <Button
@@ -289,8 +289,8 @@ export default function MessagesPage() {
   const userId = session.user.id;
 
   return (
-    <div className="space-y-4">
-      <div>
+    <div className="flex h-[calc(100svh-8rem)] flex-col gap-4">
+      <div className="shrink-0">
         <h1 className="text-2xl font-light tracking-wide">Messages</h1>
         <p className="text-sm text-muted-foreground">
           {isArtist ? "Manage client conversations" : "Chat with Jane"}

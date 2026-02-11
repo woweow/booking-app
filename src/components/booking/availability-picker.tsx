@@ -189,7 +189,7 @@ export function AvailabilityPicker({
                     "flex size-9 items-center justify-center rounded-lg text-sm transition-colors",
                     !inMonth && "text-muted-foreground/30",
                     inMonth && !isAvailable && "text-muted-foreground/50",
-                    isAvailable && "cursor-pointer hover:bg-[hsl(82_8%_48%)]/20 font-medium",
+                    isAvailable && "cursor-pointer hover:bg-[hsl(82_8%_48%)]/20 active:bg-[hsl(82_8%_48%)]/20 font-medium",
                     isAvailable && !isSelected && "text-[hsl(82_8%_48%)]",
                     isSelected && "bg-[hsl(82_8%_48%)] text-white",
                     isTodayDate && !isSelected && "ring-1 ring-ring"
@@ -239,7 +239,7 @@ export function AvailabilityPicker({
                         "flex items-center gap-2 rounded-lg border p-3 text-sm transition-colors",
                         isSlotSelected
                           ? "border-[hsl(82_8%_48%)] bg-[hsl(82_8%_48%)]/10"
-                          : "hover:border-ring hover:bg-secondary/50"
+                          : "hover:border-ring hover:bg-secondary/50 active:border-ring active:bg-secondary/50"
                       )}
                     >
                       <Clock className="size-4 text-muted-foreground" />

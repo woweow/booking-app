@@ -343,7 +343,7 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
                 <Label className="text-muted-foreground">
                   Photos ({photos.length})
                 </Label>
-                <div className="mt-1 grid grid-cols-4 gap-2">
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {photos.map((photo) => (
                     <img
                       key={photo.preview}

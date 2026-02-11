@@ -82,7 +82,7 @@ export function PhotoUpload({
             "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-colors",
             dragActive
               ? "border-ring bg-accent/20"
-              : "border-border hover:border-ring/50"
+              : "border-border hover:border-ring/50 active:border-ring/50"
           )}
         >
           <Upload className="mb-2 size-8 text-muted-foreground" />
@@ -115,7 +115,7 @@ export function PhotoUpload({
                 type="button"
                 variant="destructive"
                 size="icon"
-                className="absolute right-1 top-1 size-6 opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-1 top-1 size-6 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                 onClick={() => removeFile(index)}
               >
                 <X className="size-3" />

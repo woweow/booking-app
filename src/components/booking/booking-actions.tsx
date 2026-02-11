@@ -543,7 +543,7 @@ export function BookingActions({
     status === "INFO_REQUESTED"
   ) {
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <ApproveDialog bookingId={bookingId} onSuccess={refresh} />
         <RequestInfoDialog bookingId={bookingId} onSuccess={refresh} />
         <DeclineDialog bookingId={bookingId} onSuccess={refresh} />

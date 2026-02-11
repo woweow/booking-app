@@ -175,7 +175,7 @@ export function ArtistCalendar() {
           <Button
             variant="outline"
             size="icon"
-            className="size-8"
+            className="size-10 sm:size-8"
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
           >
             <ChevronLeft className="size-4" />
@@ -190,7 +190,7 @@ export function ArtistCalendar() {
           <Button
             variant="outline"
             size="icon"
-            className="size-8"
+            className="size-10 sm:size-8"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
           >
             <ChevronRight className="size-4" />
@@ -232,7 +232,7 @@ export function ArtistCalendar() {
                   key={d.toISOString()}
                   onClick={() => handleDayClick(d)}
                   className={cn(
-                    "relative flex h-16 flex-col items-center border-b border-r p-1 text-sm transition-colors hover:bg-secondary/50 sm:h-20",
+                    "relative flex h-16 flex-col items-center border-b border-r p-1 text-sm transition-colors hover:bg-secondary/50 active:bg-secondary/50 sm:h-20",
                     !inMonth && "text-muted-foreground/40",
                     isUnavailable && "bg-destructive/5"
                   )}

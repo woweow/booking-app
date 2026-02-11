@@ -43,7 +43,13 @@ export default function ClientDetailPage() {
       try {
         const res = await fetch(`/api/clients/${params.id}`);
         if (res.ok) {
-          setClient(await res.json());
+          const data = await res.json();
+          const clientData = data.client ?? data;
+          // Ensure bookings is always an array
+          if (!Array.isArray(clientData.bookings)) {
+            clientData.bookings = [];
+          }
+          setClient(clientData);
         }
       } catch {
         // silently fail
@@ -74,7 +80,9 @@ export default function ClientDetailPage() {
     );
   }
 
-  const upcomingBooking = client.bookings.find(
+  const bookings = client.bookings ?? [];
+
+  const upcomingBooking = bookings.find(
     (b) =>
       b.status === "CONFIRMED" &&
       b.appointmentDate &&
@@ -126,7 +134,9 @@ export default function ClientDetailPage() {
                 <div>
                   <p className="text-xs text-muted-foreground">Member since</p>
                   <p className="text-sm">
-                    {format(new Date(client.createdAt), "MMMM d, yyyy")}
+                    {client.createdAt
+                      ? format(new Date(client.createdAt), "MMMM d, yyyy")
+                      : "Unknown"}
                   </p>
                 </div>
               </div>
@@ -140,13 +150,13 @@ export default function ClientDetailPage() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Bookings</span>
-                <span className="font-medium">{client.bookings.length}</span>
+                <span className="font-medium">{bookings.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Active</span>
                 <span className="font-medium">
                   {
-                    client.bookings.filter((b) =>
+                    bookings.filter((b) =>
                       ["PENDING", "INFO_REQUESTED", "AWAITING_DEPOSIT", "CONFIRMED"].includes(
                         b.status
                       )
@@ -158,7 +168,7 @@ export default function ClientDetailPage() {
                 <span className="text-muted-foreground">Completed</span>
                 <span className="font-medium">
                   {
-                    client.bookings.filter((b) => b.status === "COMPLETED")
+                    bookings.filter((b) => b.status === "COMPLETED")
                       .length
                   }
                 </span>
@@ -190,7 +200,7 @@ export default function ClientDetailPage() {
 
         <div className="lg:col-span-2">
           <h2 className="mb-4 text-lg font-medium">Booking History</h2>
-          {client.bookings.length === 0 ? (
+          {bookings.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
                 <p className="text-sm text-muted-foreground">
@@ -200,7 +210,7 @@ export default function ClientDetailPage() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {client.bookings.map((booking) => (
+              {bookings.map((booking) => (
                 <BookingCard key={booking.id} booking={booking} />
               ))}
             </div>

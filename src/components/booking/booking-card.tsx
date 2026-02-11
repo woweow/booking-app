@@ -64,15 +64,18 @@ export function BookingCard({
               <MapPin className="size-4" />
               {booking.placement}
             </span>
-            {booking.appointmentDate && (
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays className="size-4" />
-                {format(new Date(booking.appointmentDate), "MMM d, yyyy")}
+            {booking.appointmentDate &&
+              !isNaN(new Date(booking.appointmentDate).getTime()) && (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays className="size-4" />
+                  {format(new Date(booking.appointmentDate), "MMM d, yyyy")}
+                </span>
+              )}
+            {booking.createdAt && (
+              <span className="ml-auto text-xs">
+                Submitted {format(new Date(booking.createdAt), "MMM d, yyyy")}
               </span>
             )}
-            <span className="ml-auto text-xs">
-              Submitted {format(new Date(booking.createdAt), "MMM d, yyyy")}
-            </span>
           </div>
         </CardContent>
       </Card>

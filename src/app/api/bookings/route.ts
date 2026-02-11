@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         size,
         placement,
         isFirstTattoo,
-        preferredDates: JSON.stringify(preferredDates),
+        preferredDates: preferredDates ? JSON.stringify(preferredDates) : "[]",
         medicalNotes: medicalNotes || null,
         photos: photoUrls?.length
           ? {

@@ -15,7 +15,6 @@ type BookingData = {
   size: string;
   placement: string;
   isFirstTattoo: boolean;
-  preferredDates: string;
   medicalNotes?: string | null;
 };
 
@@ -73,16 +72,6 @@ export default function EditBookingPage() {
     );
   }
 
-  const preferredDates: Date[] = (() => {
-    try {
-      return JSON.parse(booking.preferredDates).map(
-        (d: string) => new Date(d)
-      );
-    } catch {
-      return [];
-    }
-  })();
-
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
@@ -107,7 +96,6 @@ export default function EditBookingPage() {
           size: booking.size,
           placement: booking.placement,
           isFirstTattoo: booking.isFirstTattoo,
-          preferredDates,
           medicalNotes: booking.medicalNotes || "",
         }}
       />

@@ -48,9 +48,20 @@ const createBookSchema = z.object({
   type: z.enum(["FLASH", "CUSTOM"]),
   description: z.string().optional(),
   depositAmountCents: z.number().int().positive("Deposit amount is required"),
-  activeFrom: z.string().optional(),
-  activeUntil: z.string().optional(),
-});
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+}).refine(
+  (data) => {
+    if (data.startDate && data.endDate) {
+      return new Date(data.endDate) >= new Date(data.startDate);
+    }
+    return true;
+  },
+  {
+    message: "End date must be on or after the start date",
+    path: ["endDate"],
+  }
+);
 
 type CreateBookValues = z.infer<typeof createBookSchema>;
 
@@ -59,8 +70,8 @@ type Book = {
   name: string;
   type: string;
   isActive: boolean;
-  activeFrom?: string | null;
-  activeUntil?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
   description?: string | null;
   depositAmountCents: number;
   _count?: { bookings: number };
@@ -79,8 +90,8 @@ export default function BooksPage() {
       type: "CUSTOM",
       description: "",
       depositAmountCents: 10000,
-      activeFrom: "",
-      activeUntil: "",
+      startDate: "",
+      endDate: "",
     },
   });
 
@@ -118,7 +129,8 @@ export default function BooksPage() {
         return;
       }
 
-      const newBook = await res.json();
+      const data = await res.json();
+      const newBook = data.book || data;
       setBooks((prev) => [...prev, newBook]);
       toast.success("Book created successfully");
       setCreateOpen(false);
@@ -204,16 +216,21 @@ export default function BooksPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-xs text-muted-foreground">
-                    {book.activeFrom && (
+                    {book.startDate && book.endDate ? (
                       <span>
-                        From {format(new Date(book.activeFrom), "MMM d, yyyy")}
+                        {format(new Date(book.startDate), "MMM d")} &ndash;{" "}
+                        {format(new Date(book.endDate), "MMM d, yyyy")}
                       </span>
-                    )}
-                    {book.activeFrom && book.activeUntil && " — "}
-                    {book.activeUntil && (
+                    ) : book.startDate ? (
                       <span>
-                        Until {format(new Date(book.activeUntil), "MMM d, yyyy")}
+                        Opens {format(new Date(book.startDate), "MMM d, yyyy")}
                       </span>
+                    ) : book.endDate ? (
+                      <span>
+                        Closes {format(new Date(book.endDate), "MMM d, yyyy")}
+                      </span>
+                    ) : (
+                      <span>No dates set</span>
                     )}
                   </div>
                 </CardContent>
@@ -295,25 +312,27 @@ export default function BooksPage() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="activeFrom"
+                  name="startDate"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Opens (optional)</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={form.control}
-                  name="activeUntil"
+                  name="endDate"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Closes (optional)</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

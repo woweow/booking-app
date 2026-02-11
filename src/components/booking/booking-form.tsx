@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
-import { Loader2, X, Check } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -11,9 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
   SelectContent,
@@ -35,7 +32,6 @@ type FormData = {
   description: string;
   size: string;
   placement: string;
-  preferredDates: Date[];
   isFirstTattoo: boolean;
   medicalNotes: string;
 };
@@ -46,7 +42,7 @@ type BookingFormProps = {
   isEdit?: boolean;
 };
 
-const STEPS = ["Tattoo Details", "Scheduling", "Photos", "Review"];
+const STEPS = ["Tattoo Details", "Photos", "Review"];
 
 const sizeOptions = [
   { value: "SMALL", label: "Small (Under 2\")" },
@@ -65,7 +61,6 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
     description: initialData?.description || "",
     size: initialData?.size || "",
     placement: initialData?.placement || "",
-    preferredDates: initialData?.preferredDates || [],
     isFirstTattoo: initialData?.isFirstTattoo || false,
     medicalNotes: initialData?.medicalNotes || "",
   });
@@ -90,11 +85,6 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
         newErrors.placement = "Placement is required";
     }
 
-    if (step === 1) {
-      if (formData.preferredDates.length === 0)
-        newErrors.preferredDates = "Select at least one preferred date";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -107,24 +97,6 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
 
   function handleBack() {
     setStep((s) => Math.max(s - 1, 0));
-  }
-
-  function addDate(date: Date | undefined) {
-    if (!date) return;
-    if (formData.preferredDates.length >= 3) return;
-    const exists = formData.preferredDates.some(
-      (d) => d.toDateString() === date.toDateString()
-    );
-    if (!exists) {
-      updateField("preferredDates", [...formData.preferredDates, date]);
-    }
-  }
-
-  function removeDate(index: number) {
-    updateField(
-      "preferredDates",
-      formData.preferredDates.filter((_, i) => i !== index)
-    );
   }
 
   async function handleSubmit() {
@@ -150,7 +122,6 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
         size: formData.size,
         placement: formData.placement,
         isFirstTattoo: formData.isFirstTattoo,
-        preferredDates: formData.preferredDates.map((d) => d.toISOString()),
         medicalNotes: formData.medicalNotes || undefined,
         photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
       };
@@ -288,53 +259,6 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
                 <p className="text-xs text-destructive">{errors.placement}</p>
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: Scheduling */}
-      {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-medium">Scheduling Preferences</CardTitle>
-            <CardDescription>
-              Select up to 3 preferred dates for your appointment
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={undefined}
-                onSelect={addDate}
-                disabled={(date) => date < new Date()}
-                className="rounded-lg border"
-              />
-            </div>
-
-            {formData.preferredDates.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {formData.preferredDates.map((date, i) => (
-                  <Badge
-                    key={date.toISOString()}
-                    variant="secondary"
-                    className="gap-1 pr-1"
-                  >
-                    {format(date, "EEEE, MMMM d, yyyy")}
-                    <button
-                      type="button"
-                      onClick={() => removeDate(i)}
-                      className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-            {errors.preferredDates && (
-              <p className="text-xs text-destructive">{errors.preferredDates}</p>
-            )}
 
             <div className="flex items-center gap-2">
               <Checkbox
@@ -352,8 +276,8 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
         </Card>
       )}
 
-      {/* Step 3: Photos */}
-      {step === 2 && (
+      {/* Step 2: Photos */}
+      {step === 1 && (
         <Card>
           <CardHeader>
             <CardTitle className="font-medium">Inspiration Photos</CardTitle>
@@ -374,8 +298,8 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
         </Card>
       )}
 
-      {/* Step 4: Review */}
-      {step === 3 && (
+      {/* Step 3: Review */}
+      {step === 2 && (
         <Card>
           <CardHeader>
             <CardTitle className="font-medium">Review Your Booking</CardTitle>
@@ -412,17 +336,6 @@ export function BookingForm({ initialData, bookingId, isEdit }: BookingFormProps
             <div>
               <Label className="text-muted-foreground">Description</Label>
               <p className="mt-1 text-sm">{formData.description}</p>
-            </div>
-
-            <div>
-              <Label className="text-muted-foreground">Preferred Dates</Label>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {formData.preferredDates.map((date) => (
-                  <Badge key={date.toISOString()} variant="secondary">
-                    {format(date, "EEEE, MMMM d, yyyy")}
-                  </Badge>
-                ))}
-              </div>
             </div>
 
             {photos.length > 0 && (

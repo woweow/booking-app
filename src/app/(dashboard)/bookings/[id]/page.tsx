@@ -107,7 +107,8 @@ function BookingDetailContent() {
       try {
         const res = await fetch(`/api/bookings/${params.id}`);
         if (res.ok) {
-          setBooking(await res.json());
+          const data = await res.json();
+          setBooking(data.booking ?? data);
         }
       } catch {
         // silently fail
@@ -130,7 +131,10 @@ function BookingDetailContent() {
         router.refresh();
         setCancelOpen(false);
         const res2 = await fetch(`/api/bookings/${params.id}`);
-        if (res2.ok) setBooking(await res2.json());
+        if (res2.ok) {
+          const data2 = await res2.json();
+          setBooking(data2.booking ?? data2);
+        }
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to cancel");
@@ -194,7 +198,9 @@ function BookingDetailContent() {
               <StatusBadge status={booking.status} />
             </div>
             <p className="text-sm text-muted-foreground">
-              Submitted {format(new Date(booking.createdAt), "MMMM d, yyyy")}
+              {booking.createdAt
+                ? `Submitted ${format(new Date(booking.createdAt), "MMMM d, yyyy")}`
+                : "Submission date unavailable"}
             </p>
           </div>
 
@@ -331,20 +337,25 @@ function BookingDetailContent() {
                 )}
               </div>
 
-              <Separator />
-
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Preferred Dates
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {preferredDates.map((date) => (
-                    <Badge key={date} variant="secondary">
-                      {format(new Date(date), "EEEE, MMMM d, yyyy")}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+              {preferredDates.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Preferred Dates
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {preferredDates
+                        .filter((date) => date && !isNaN(new Date(date).getTime()))
+                        .map((date) => (
+                          <Badge key={date} variant="secondary">
+                            {format(new Date(date), "EEEE, MMMM d, yyyy")}
+                          </Badge>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {booking.medicalNotes && (
                 <>
@@ -516,11 +527,12 @@ function BookingDetailContent() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm text-[hsl(82_8%_48%)]">
                       <CheckCircle className="size-4" />
-                      Signed on{" "}
-                      {format(
-                        new Date(booking.consentForm.signedAt),
-                        "MMMM d, yyyy"
-                      )}
+                      {booking.consentForm.signedAt
+                        ? `Signed on ${format(
+                            new Date(booking.consentForm.signedAt),
+                            "MMMM d, yyyy"
+                          )}`
+                        : "Signed"}
                     </div>
                     <Button
                       variant="outline"

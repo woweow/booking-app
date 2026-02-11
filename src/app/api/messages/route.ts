@@ -120,6 +120,18 @@ export async function POST(request: NextRequest) {
     let receiverId: string;
 
     if (session.user.role === UserRole.CLIENT) {
+      // Clients must have at least one booking to send messages
+      const bookingCount = await prisma.booking.count({
+        where: { clientId: session.user.id },
+      });
+
+      if (bookingCount === 0) {
+        return NextResponse.json(
+          { error: "You must submit a booking request before sending messages." },
+          { status: 403 }
+        );
+      }
+
       const artist = await prisma.user.findFirst({
         where: { role: UserRole.ARTIST },
         select: { id: true },

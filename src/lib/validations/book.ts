@@ -3,7 +3,19 @@ import { z } from "zod";
 const timeRegex = /^\d{2}:\d{2}$/;
 const optionalTime = z.string().regex(timeRegex, "Time must be in HH:MM format").nullable().optional();
 
-export const createBookSchema = z.object({
+const dateRangeRefinement = (data: { startDate?: string | null; endDate?: string | null }) => {
+  if (data.startDate && data.endDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+};
+
+const dateRangeMessage = {
+  message: "End date must be on or after the start date",
+  path: ["endDate"],
+};
+
+const bookBaseSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.enum(["FLASH", "CUSTOM"]),
   description: z.string().optional(),
@@ -26,4 +38,6 @@ export const createBookSchema = z.object({
   sundayEnd: optionalTime,
 });
 
-export const updateBookSchema = createBookSchema.partial();
+export const createBookSchema = bookBaseSchema.refine(dateRangeRefinement, dateRangeMessage);
+
+export const updateBookSchema = bookBaseSchema.partial().refine(dateRangeRefinement, dateRangeMessage);

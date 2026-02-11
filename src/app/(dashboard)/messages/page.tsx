@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, Loader2, MessageSquare } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, CalendarDays, Loader2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,25 @@ type Thread = {
 };
 
 function ClientMessages({ userId }: { userId: string }) {
+  const [hasBookings, setHasBookings] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkBookings() {
+      try {
+        const res = await fetch("/api/bookings");
+        if (res.ok) {
+          const data = await res.json();
+          setHasBookings(Array.isArray(data.bookings) && data.bookings.length > 0);
+        } else {
+          setHasBookings(false);
+        }
+      } catch {
+        setHasBookings(false);
+      }
+    }
+    checkBookings();
+  }, []);
+
   async function handleSend(content: string) {
     const res = await fetch("/api/messages", {
       method: "POST",
@@ -38,6 +58,34 @@ function ClientMessages({ userId }: { userId: string }) {
       toast.error("Failed to send message. Please try again.");
       throw new Error("Send failed");
     }
+  }
+
+  if (hasBookings === null) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!hasBookings) {
+    return (
+      <Card className="flex flex-col items-center justify-center gap-4 py-16">
+        <MessageSquare className="size-10 text-muted-foreground" />
+        <div className="text-center">
+          <h2 className="text-lg font-medium">No messages yet</h2>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            Messages will be available once you submit a booking request.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/bookings/new">
+            <CalendarDays className="mr-2 size-4" />
+            Create a Booking Request
+          </Link>
+        </Button>
+      </Card>
+    );
   }
 
   return (

@@ -9,8 +9,8 @@ export const createBookingSchema = z.object({
   isFirstTattoo: z.boolean().default(false),
   preferredDates: z
     .array(z.string())
-    .min(1, "At least one preferred date is required")
-    .max(3, "Maximum 3 preferred dates"),
+    .max(3, "Maximum 3 preferred dates")
+    .optional(),
   medicalNotes: z.string().optional(),
   photoUrls: z.array(z.string().url()).optional(),
 });

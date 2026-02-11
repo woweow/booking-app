@@ -6,6 +6,38 @@ import { updateBookSchema } from "@/lib/validations/book";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
+const DAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
+function buildAvailableHours(book: Record<string, unknown>) {
+  const hours: Record<string, { start: string; end: string } | null> = {};
+  for (const day of DAYS) {
+    const start = book[`${day}Start`] as string | null;
+    const end = book[`${day}End`] as string | null;
+    hours[day] = start && end ? { start, end } : null;
+  }
+  return hours;
+}
+
+function flattenAvailableHours(
+  availableHours: Record<string, { start: string; end: string } | null>
+) {
+  const data: Record<string, string | null> = {};
+  for (const day of DAYS) {
+    const h = availableHours[day];
+    data[`${day}Start`] = h ? h.start : null;
+    data[`${day}End`] = h ? h.end : null;
+  }
+  return data;
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth();
@@ -27,7 +59,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ book });
+    const availableHours = buildAvailableHours(book as unknown as Record<string, unknown>);
+
+    return NextResponse.json({
+      ...book,
+      availableHours,
+    });
   } catch (error) {
     console.error("Get book error:", error);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
@@ -43,7 +80,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
     const body = await request.json();
-    const result = updateBookSchema.safeParse(body);
+
+    // Extract availableHours before validation (not in zod schema)
+    const { availableHours, ...rest } = body;
+
+    const result = updateBookSchema.safeParse(rest);
 
     if (!result.success) {
       return NextResponse.json(
@@ -52,17 +93,28 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { startDate, endDate, ...rest } = result.data;
-    const data: Record<string, unknown> = { ...rest };
+    const { startDate, endDate, ...parsedRest } = result.data;
+    const data: Record<string, unknown> = { ...parsedRest };
     if (startDate !== undefined) data.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) data.endDate = endDate ? new Date(endDate) : null;
+
+    // Flatten availableHours object into individual day columns
+    if (availableHours && typeof availableHours === "object") {
+      const flat = flattenAvailableHours(availableHours);
+      Object.assign(data, flat);
+    }
 
     const book = await prisma.book.update({
       where: { id },
       data,
     });
 
-    return NextResponse.json({ book });
+    const builtHours = buildAvailableHours(book as unknown as Record<string, unknown>);
+
+    return NextResponse.json({
+      ...book,
+      availableHours: builtHours,
+    });
   } catch (error) {
     console.error("Update book error:", error);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });

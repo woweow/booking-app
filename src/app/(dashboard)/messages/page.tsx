@@ -1,66 +1,88 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { MessageThread } from "@/components/messaging/message-thread";
 import { MessageInput } from "@/components/messaging/message-input";
-import { ConversationsList } from "@/components/messaging/conversations-list";
+import {
+  ConversationsList,
+  type BookingThread,
+} from "@/components/messaging/conversations-list";
 
-type Thread = {
-  participant: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  lastMessage?: {
-    content: string;
-    senderId: string;
-    createdAt: string;
-  } | null;
-  unreadCount: number;
-};
+const TERMINAL_STATUSES = ["DECLINED", "CANCELLED"];
 
 function ClientMessages({ userId }: { userId: string }) {
-  const [hasBookings, setHasBookings] = useState<boolean | null>(null);
+  const searchParams = useSearchParams();
+  const [threads, setThreads] = useState<BookingThread[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
+    searchParams.get("bookingId")
+  );
+  const [mobileShowThread, setMobileShowThread] = useState(
+    !!searchParams.get("bookingId")
+  );
+
+  const fetchThreads = useCallback(async () => {
+    try {
+      const res = await fetch("/api/messages");
+      if (res.ok) {
+        const data = await res.json();
+        const fetched: BookingThread[] = data.threads || [];
+        setThreads(fetched);
+        // Auto-select if only one thread and nothing selected
+        if (!selectedBookingId && fetched.length === 1) {
+          setSelectedBookingId(fetched[0].bookingId);
+        }
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedBookingId]);
 
   useEffect(() => {
-    async function checkBookings() {
-      try {
-        const res = await fetch("/api/bookings");
-        if (res.ok) {
-          const data = await res.json();
-          setHasBookings(Array.isArray(data.bookings) && data.bookings.length > 0);
-        } else {
-          setHasBookings(false);
-        }
-      } catch {
-        setHasBookings(false);
-      }
-    }
-    checkBookings();
-  }, []);
+    fetchThreads();
+    const interval = setInterval(fetchThreads, 10000);
+    return () => clearInterval(interval);
+  }, [fetchThreads]);
+
+  function selectThread(bookingId: string) {
+    setSelectedBookingId(bookingId);
+    setMobileShowThread(true);
+  }
 
   async function handleSend(content: string) {
+    if (!selectedBookingId) return;
+
     const res = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, bookingId: selectedBookingId }),
     });
 
     if (!res.ok) {
       toast.error("Failed to send message. Please try again.");
       throw new Error("Send failed");
     }
+
+    fetchThreads();
   }
 
-  if (hasBookings === null) {
+  const selectedThread = threads.find(
+    (t) => t.bookingId === selectedBookingId
+  );
+  const isTerminal =
+    selectedThread && TERMINAL_STATUSES.includes(selectedThread.bookingStatus);
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -68,48 +90,185 @@ function ClientMessages({ userId }: { userId: string }) {
     );
   }
 
-  if (!hasBookings) {
+  if (threads.length === 0) {
     return (
       <Card className="flex flex-col items-center justify-center gap-4 py-16">
         <MessageSquare className="size-10 text-muted-foreground" />
         <div className="text-center">
           <h2 className="text-lg font-medium">No messages yet</h2>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Messages will be available once you submit a booking request.
+            Chat will be available once your booking is reviewed.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/bookings/new">
-            <CalendarDays className="mr-2 size-4" />
-            Create a Booking Request
-          </Link>
-        </Button>
       </Card>
     );
   }
 
+  // Single thread — show it directly without list
+  if (threads.length === 1) {
+    const thread = threads[0];
+    const singleTerminal = TERMINAL_STATUSES.includes(thread.bookingStatus);
+
+    return (
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div>
+            <h2 className="text-sm font-medium">Chat with Jane</h2>
+            <p className="text-xs text-muted-foreground">
+              {thread.bookingDescription}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/bookings/${thread.bookingId}`}>
+              <ExternalLink className="mr-1.5 size-3.5" />
+              View Booking
+            </Link>
+          </Button>
+        </div>
+        <MessageThread
+          currentUserId={userId}
+          threadEndpoint={`/api/messages/${thread.bookingId}`}
+          pollInterval={5000}
+        />
+        <MessageInput
+          onSend={handleSend}
+          placeholder="Message Jane..."
+          disabled={singleTerminal}
+        />
+      </Card>
+    );
+  }
+
+  // Multiple threads — two-panel / mobile layout (same structure as artist)
   return (
-    <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-medium">Chat with Jane</h2>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Desktop: two-panel */}
+      <div className="hidden min-h-0 flex-1 gap-4 lg:grid lg:grid-cols-3">
+        <Card className="overflow-y-auto">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="text-sm font-medium">Your Bookings</h2>
+            <p className="text-xs text-muted-foreground">
+              {threads.reduce((acc, t) => acc + t.unreadCount, 0)} unread
+            </p>
+          </div>
+          <ConversationsList
+            threads={threads}
+            selectedBookingId={selectedBookingId}
+            currentUserId={userId}
+            onSelect={selectThread}
+          />
+        </Card>
+
+        <Card className="col-span-2 flex flex-col overflow-hidden">
+          {selectedThread ? (
+            <>
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <div>
+                  <h2 className="text-sm font-medium">Chat with Jane</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedThread.bookingDescription}
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/bookings/${selectedBookingId}`}>
+                    <ExternalLink className="mr-1.5 size-3.5" />
+                    View Booking
+                  </Link>
+                </Button>
+              </div>
+              <MessageThread
+                currentUserId={userId}
+                threadEndpoint={`/api/messages/${selectedBookingId}`}
+                pollInterval={5000}
+              />
+              <MessageInput
+                onSend={handleSend}
+                placeholder="Message Jane..."
+                disabled={isTerminal}
+              />
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2">
+              <MessageSquare className="size-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Select a booking to view messages
+              </p>
+            </div>
+          )}
+        </Card>
       </div>
 
-      <MessageThread
-        currentUserId={userId}
-        threadEndpoint="/api/messages/thread"
-        pollInterval={5000}
-      />
-
-      <MessageInput onSend={handleSend} placeholder="Message Jane..." />
-    </Card>
+      {/* Mobile: single panel */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+        {!mobileShowThread || !selectedThread ? (
+          <Card className="min-h-0 flex-1 overflow-y-auto">
+            <div className="border-b border-border px-4 py-3">
+              <h2 className="text-sm font-medium">Your Bookings</h2>
+              <p className="text-xs text-muted-foreground">
+                {threads.reduce((acc, t) => acc + t.unreadCount, 0)} unread
+              </p>
+            </div>
+            <ConversationsList
+              threads={threads}
+              selectedBookingId={selectedBookingId}
+              currentUserId={userId}
+              onSelect={selectThread}
+            />
+          </Card>
+        ) : (
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="border-b border-border px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => setMobileShowThread(false)}
+                  >
+                    <ArrowLeft className="size-4" />
+                  </Button>
+                  <div>
+                    <h2 className="text-sm font-medium">Chat with Jane</h2>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedThread.bookingDescription}
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/bookings/${selectedBookingId}`}>
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            <MessageThread
+              currentUserId={userId}
+              threadEndpoint={`/api/messages/${selectedBookingId}`}
+              pollInterval={5000}
+            />
+            <MessageInput
+              onSend={handleSend}
+              placeholder="Message Jane..."
+              disabled={isTerminal}
+            />
+          </Card>
+        )}
+      </div>
+    </div>
   );
 }
 
 function ArtistMessages({ userId }: { userId: string }) {
-  const [threads, setThreads] = useState<Thread[]>([]);
+  const searchParams = useSearchParams();
+  const [threads, setThreads] = useState<BookingThread[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileShowThread, setMobileShowThread] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
+    searchParams.get("bookingId")
+  );
+  const [mobileShowThread, setMobileShowThread] = useState(
+    !!searchParams.get("bookingId")
+  );
 
   const fetchThreads = useCallback(async () => {
     try {
@@ -131,18 +290,18 @@ function ArtistMessages({ userId }: { userId: string }) {
     return () => clearInterval(interval);
   }, [fetchThreads]);
 
-  function selectConversation(participantId: string) {
-    setSelectedId(participantId);
+  function selectThread(bookingId: string) {
+    setSelectedBookingId(bookingId);
     setMobileShowThread(true);
   }
 
   async function handleSend(content: string) {
-    if (!selectedId) return;
+    if (!selectedBookingId) return;
 
     const res = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, receiverId: selectedId }),
+      body: JSON.stringify({ content, bookingId: selectedBookingId }),
     });
 
     if (!res.ok) {
@@ -153,7 +312,11 @@ function ArtistMessages({ userId }: { userId: string }) {
     fetchThreads();
   }
 
-  const selectedThread = threads.find((t) => t.participant.id === selectedId);
+  const selectedThread = threads.find(
+    (t) => t.bookingId === selectedBookingId
+  );
+  const isTerminal =
+    selectedThread && TERMINAL_STATUSES.includes(selectedThread.bookingStatus);
 
   if (loading) {
     return (
@@ -167,7 +330,6 @@ function ArtistMessages({ userId }: { userId: string }) {
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Desktop: two-panel */}
       <div className="hidden min-h-0 flex-1 gap-4 lg:grid lg:grid-cols-3">
-        {/* Conversations list */}
         <Card className="overflow-y-auto">
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-sm font-medium">Conversations</h2>
@@ -177,32 +339,40 @@ function ArtistMessages({ userId }: { userId: string }) {
           </div>
           <ConversationsList
             threads={threads}
-            selectedId={selectedId}
+            selectedBookingId={selectedBookingId}
             currentUserId={userId}
-            onSelect={selectConversation}
+            onSelect={selectThread}
           />
         </Card>
 
-        {/* Thread view */}
         <Card className="col-span-2 flex flex-col overflow-hidden">
           {selectedThread ? (
             <>
-              <div className="border-b border-border px-4 py-3">
-                <h2 className="text-sm font-medium">
-                  {selectedThread.participant.name}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {selectedThread.participant.email}
-                </p>
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <div>
+                  <h2 className="text-sm font-medium">
+                    {selectedThread.clientName}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedThread.bookingDescription}
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/bookings/${selectedBookingId}`}>
+                    <ExternalLink className="mr-1.5 size-3.5" />
+                    View Booking
+                  </Link>
+                </Button>
               </div>
               <MessageThread
                 currentUserId={userId}
-                threadEndpoint={`/api/messages/${selectedId}`}
+                threadEndpoint={`/api/messages/${selectedBookingId}`}
                 pollInterval={5000}
               />
               <MessageInput
                 onSend={handleSend}
-                placeholder={`Message ${selectedThread.participant.name}...`}
+                placeholder={`Message ${selectedThread.clientName}...`}
+                disabled={isTerminal}
               />
             </>
           ) : (
@@ -236,42 +406,50 @@ function ArtistMessages({ userId }: { userId: string }) {
             ) : (
               <ConversationsList
                 threads={threads}
-                selectedId={selectedId}
+                selectedBookingId={selectedBookingId}
                 currentUserId={userId}
-                onSelect={selectConversation}
+                onSelect={selectThread}
               />
             )}
           </Card>
         ) : (
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="border-b border-border px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => setMobileShowThread(false)}
-                >
-                  <ArrowLeft className="size-4" />
-                </Button>
-                <div>
-                  <h2 className="text-sm font-medium">
-                    {selectedThread.participant.name}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedThread.participant.email}
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => setMobileShowThread(false)}
+                  >
+                    <ArrowLeft className="size-4" />
+                  </Button>
+                  <div>
+                    <h2 className="text-sm font-medium">
+                      {selectedThread.clientName}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedThread.bookingDescription}
+                    </p>
+                  </div>
                 </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/bookings/${selectedBookingId}`}>
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                </Button>
               </div>
             </div>
             <MessageThread
               currentUserId={userId}
-              threadEndpoint={`/api/messages/${selectedId}`}
+              threadEndpoint={`/api/messages/${selectedBookingId}`}
               pollInterval={5000}
             />
             <MessageInput
               onSend={handleSend}
-              placeholder={`Message ${selectedThread.participant.name}...`}
+              placeholder={`Message ${selectedThread.clientName}...`}
+              disabled={isTerminal}
             />
           </Card>
         )}
@@ -280,8 +458,12 @@ function ArtistMessages({ userId }: { userId: string }) {
   );
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+
+  // consume searchParams to avoid SSR bailout warning
+  searchParams.get("bookingId");
 
   if (!session?.user) return null;
 
@@ -303,5 +485,19 @@ export default function MessagesPage() {
         <ClientMessages userId={userId} />
       )}
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <MessagesContent />
+    </Suspense>
   );
 }

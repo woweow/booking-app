@@ -10,13 +10,16 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = session.user.id;
+    const isClient = session.user.role === UserRole.CLIENT;
+
     const count = await prisma.message.count({
       where: {
-        receiverId: session.user.id,
         read: false,
-        ...(session.user.role === UserRole.CLIENT
-          ? { sender: { role: UserRole.ARTIST } }
-          : { sender: { role: UserRole.CLIENT } }),
+        senderId: { not: userId },
+        booking: isClient
+          ? { clientId: userId, chatEnabled: true }
+          : undefined,
       },
     });
 

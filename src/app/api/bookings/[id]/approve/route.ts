@@ -68,6 +68,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         depositAmount: depositAmountCents,
         totalAmount: totalAmountCents,
         artistNotes: artistNotes || null,
+        chatEnabled: true,
       },
       include: {
         client: { select: { id: true, name: true, email: true, phone: true } },

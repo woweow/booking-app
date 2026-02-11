@@ -11,87 +11,75 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.role === UserRole.CLIENT) {
-      // Find the artist
-      const artist = await prisma.user.findFirst({
-        where: { role: UserRole.ARTIST },
-        select: { id: true, name: true, email: true },
-      });
+    const userId = session.user.id;
+    const isArtist = session.user.role === UserRole.ARTIST;
 
-      if (!artist) {
-        return NextResponse.json({ threads: [] });
-      }
-
-      const lastMessage = await prisma.message.findFirst({
-        where: {
-          OR: [
-            { senderId: session.user.id, receiverId: artist.id },
-            { senderId: artist.id, receiverId: session.user.id },
-          ],
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      const unreadCount = await prisma.message.count({
-        where: {
-          senderId: artist.id,
-          receiverId: session.user.id,
-          read: false,
-        },
-      });
-
-      if (!lastMessage) {
-        return NextResponse.json({
-          threads: [{ participant: artist, lastMessage: null, unreadCount: 0 }],
-        });
-      }
-
-      return NextResponse.json({
-        threads: [{ participant: artist, lastMessage, unreadCount }],
-      });
-    }
-
-    if (session.user.role === UserRole.ARTIST) {
-      const clients = await prisma.user.findMany({
-        where: { role: UserRole.CLIENT },
-        select: { id: true, name: true, email: true },
-      });
-
-      const threads = [];
-
-      for (const client of clients) {
-        const lastMessage = await prisma.message.findFirst({
-          where: {
+    // Fetch bookings that have chat enabled OR have messages
+    const bookings = await prisma.booking.findMany({
+      where: isArtist
+        ? {
             OR: [
-              { senderId: session.user.id, receiverId: client.id },
-              { senderId: client.id, receiverId: session.user.id },
+              { chatEnabled: true },
+              { messages: { some: {} } },
             ],
+          }
+        : {
+            clientId: userId,
+            chatEnabled: true,
           },
+      include: {
+        client: { select: { id: true, name: true } },
+        photos: { take: 1, select: { blobUrl: true } },
+        messages: {
           orderBy: { createdAt: "desc" },
-        });
-
-        if (!lastMessage) continue;
-
-        const unreadCount = await prisma.message.count({
-          where: {
-            senderId: client.id,
-            receiverId: session.user.id,
-            read: false,
+          take: 1,
+          select: { content: true, senderId: true, createdAt: true },
+        },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                read: false,
+                senderId: { not: userId },
+              },
+            },
           },
-        });
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
 
-        threads.push({ participant: client, lastMessage, unreadCount });
-      }
+    const threads = bookings.map((b) => ({
+      bookingId: b.id,
+      bookingDescription: b.description,
+      bookingStatus: b.status,
+      bookingType: b.bookingType,
+      clientName: b.client.name,
+      clientId: b.client.id,
+      photoUrl: b.photos[0]?.blobUrl ?? null,
+      chatEnabled: b.chatEnabled,
+      lastMessage: b.messages[0]
+        ? {
+            content: b.messages[0].content,
+            senderId: b.messages[0].senderId,
+            createdAt: b.messages[0].createdAt.toISOString(),
+          }
+        : null,
+      unreadCount: b._count.messages,
+    }));
 
-      // Sort by most recent message
-      threads.sort(
-        (a, b) => new Date(b.lastMessage!.createdAt).getTime() - new Date(a.lastMessage!.createdAt).getTime()
-      );
+    // Sort by most recent message, then by updatedAt for threads with no messages
+    threads.sort((a, b) => {
+      const aTime = a.lastMessage
+        ? new Date(a.lastMessage.createdAt).getTime()
+        : 0;
+      const bTime = b.lastMessage
+        ? new Date(b.lastMessage.createdAt).getTime()
+        : 0;
+      return bTime - aTime;
+    });
 
-      return NextResponse.json({ threads });
-    }
-
-    return NextResponse.json({ error: "Invalid role" }, { status: 403 });
+    return NextResponse.json({ threads });
   } catch (error) {
     console.error("List messages error:", error);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
@@ -100,7 +88,6 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit
     const clientIp = getClientIp(request);
     const rateLimitResponse = await checkRateLimit(apiRateLimiter, clientIp);
     if (rateLimitResponse) return rateLimitResponse;
@@ -112,64 +99,53 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const content = body.content?.trim();
+    const bookingId = body.bookingId;
 
     if (!content) {
       return NextResponse.json({ error: "Message content is required" }, { status: 400 });
     }
 
-    let receiverId: string;
+    if (!bookingId) {
+      return NextResponse.json({ error: "Booking ID is required" }, { status: 400 });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, clientId: true, chatEnabled: true },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
 
     if (session.user.role === UserRole.CLIENT) {
-      // Clients must have at least one booking to send messages
-      const bookingCount = await prisma.booking.count({
-        where: { clientId: session.user.id },
-      });
-
-      if (bookingCount === 0) {
+      if (booking.clientId !== session.user.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      if (!booking.chatEnabled) {
         return NextResponse.json(
-          { error: "You must submit a booking request before sending messages." },
+          { error: "Chat is not yet enabled for this booking." },
           { status: 403 }
         );
       }
+    }
 
-      const artist = await prisma.user.findFirst({
-        where: { role: UserRole.ARTIST },
-        select: { id: true },
+    // Artist can message any booking; if chat not enabled, flip it on
+    if (session.user.role === UserRole.ARTIST && !booking.chatEnabled) {
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { chatEnabled: true },
       });
-
-      if (!artist) {
-        return NextResponse.json({ error: "No artist found" }, { status: 404 });
-      }
-
-      receiverId = artist.id;
-    } else if (session.user.role === UserRole.ARTIST) {
-      if (!body.receiverId) {
-        return NextResponse.json({ error: "Receiver ID is required" }, { status: 400 });
-      }
-
-      const receiver = await prisma.user.findUnique({
-        where: { id: body.receiverId },
-        select: { id: true, role: true },
-      });
-
-      if (!receiver || receiver.role !== UserRole.CLIENT) {
-        return NextResponse.json({ error: "Invalid receiver" }, { status: 400 });
-      }
-
-      receiverId = body.receiverId;
-    } else {
-      return NextResponse.json({ error: "Invalid role" }, { status: 403 });
     }
 
     const message = await prisma.message.create({
       data: {
+        bookingId,
         senderId: session.user.id,
-        receiverId,
         content,
       },
       include: {
-        sender: { select: { id: true, name: true, email: true } },
-        receiver: { select: { id: true, name: true, email: true } },
+        sender: { select: { id: true, name: true } },
       },
     });
 

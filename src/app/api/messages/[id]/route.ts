@@ -12,45 +12,37 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
-    let otherUserId: string;
+    const { id: bookingId } = await params;
 
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, clientId: true, chatEnabled: true },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    // Client must own the booking and chat must be enabled
     if (session.user.role === UserRole.CLIENT) {
-      // id is ignored for client; always get conversation with artist
-      const artist = await prisma.user.findFirst({
-        where: { role: UserRole.ARTIST },
-        select: { id: true },
-      });
-
-      if (!artist) {
-        return NextResponse.json({ messages: [] });
+      if (booking.clientId !== session.user.id || !booking.chatEnabled) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-
-      otherUserId = artist.id;
-    } else {
-      // Artist: id = clientId
-      otherUserId = id;
     }
 
     const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: session.user.id, receiverId: otherUserId },
-          { senderId: otherUserId, receiverId: session.user.id },
-        ],
-      },
+      where: { bookingId },
       include: {
-        sender: { select: { id: true, name: true, email: true, role: true } },
-        receiver: { select: { id: true, name: true, email: true, role: true } },
+        sender: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "asc" },
     });
 
-    // Mark received messages as read
+    // Mark unread messages from the other party as read
     await prisma.message.updateMany({
       where: {
-        senderId: otherUserId,
-        receiverId: session.user.id,
+        bookingId,
+        senderId: { not: session.user.id },
         read: false,
       },
       data: { read: true },

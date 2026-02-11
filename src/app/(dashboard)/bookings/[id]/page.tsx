@@ -14,6 +14,7 @@ import {
   Loader2,
   Mail,
   MapPin,
+  MessageSquare,
   Phone,
   Ruler,
   UserCircle,
@@ -73,6 +74,7 @@ type BookingDetail = {
   depositAmount?: number | null;
   totalAmount?: number | null;
   depositPaidAt?: string | null;
+  chatEnabled?: boolean;
   createdAt: string;
   client?: {
     id: string;
@@ -570,6 +572,41 @@ function BookingDetailContent() {
               </CardContent>
             </Card>
           )}
+
+          {/* Chat */}
+          {isArtist ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-medium">
+                  <MessageSquare className="size-5" />
+                  Chat
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button asChild className="w-full">
+                  <Link href={`/messages?bookingId=${booking.id}`}>
+                    Open Chat
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : booking.chatEnabled ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-medium">
+                  <MessageSquare className="size-5" />
+                  Chat
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button asChild className="w-full">
+                  <Link href={`/messages?bookingId=${booking.id}`}>
+                    Chat with Jane
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/* Artist actions */}
           {isArtist && (

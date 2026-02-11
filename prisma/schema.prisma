@@ -80,7 +80,6 @@ model User {
   // Relationships
   bookings          Booking[]
   messagesSent      Message[]          @relation("MessageSender")
-  messagesReceived  Message[]          @relation("MessageReceiver")
   consentForms      ConsentForm[]
   googleConnection  GoogleConnection?
 }
@@ -122,12 +121,15 @@ model Booking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  chatEnabled Boolean @default(false)
+
   // Relationships
   photos        BookingPhoto[]
   consentForm   ConsentForm?
   notifications ScheduledNotification[]
   timeBlocks    TimeBlock[]
   bookingLink   BookingLink?
+  messages      Message[]
 }
 
 model BookingPhoto {
@@ -140,16 +142,17 @@ model BookingPhoto {
 }
 
 model Message {
-  id         String   @id @default(cuid())
-  senderId   String
-  sender     User     @relation("MessageSender", fields: [senderId], references: [id])
-  receiverId String
-  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id])
-  content    String
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  @@index([senderId, receiverId])
+  @@index([bookingId, createdAt])
+  @@index([bookingId, read])
 }
 
 model ConsentForm {

@@ -69,7 +69,7 @@ export async function GET() {
             },
           }),
           prisma.message.count({
-            where: { receiverId: session.user.id, read: false },
+            where: { read: false, senderId: { not: session.user.id } },
           }),
           prisma.user.count({
             where: { role: UserRole.CLIENT },

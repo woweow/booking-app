@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { UserRole } from "@prisma/client";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -11,26 +12,33 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id: bookingId } = await params;
 
-    const message = await prisma.message.findUnique({
-      where: { id },
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, clientId: true, chatEnabled: true },
     });
 
-    if (!message) {
-      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    if (!booking) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    if (message.receiverId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (session.user.role === UserRole.CLIENT) {
+      if (booking.clientId !== session.user.id || !booking.chatEnabled) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
-    const updated = await prisma.message.update({
-      where: { id },
+    const result = await prisma.message.updateMany({
+      where: {
+        bookingId,
+        senderId: { not: session.user.id },
+        read: false,
+      },
       data: { read: true },
     });
 
-    return NextResponse.json({ message: updated });
+    return NextResponse.json({ updated: result.count });
   } catch (error) {
     console.error("Mark read error:", error);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });

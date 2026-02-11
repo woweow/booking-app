@@ -10,6 +10,7 @@ import {
   UserCircle,
   Users,
   Calendar,
+  BookOpen,
   LogOut,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ const artistNav: NavItem[] = [
   { label: "Clients", href: "/clients", icon: Users },
   { label: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Calendar", href: "/calendar", icon: Calendar },
+  { label: "Books", href: "/books", icon: BookOpen },
   { label: "Profile", href: "/profile", icon: UserCircle },
 ];
 

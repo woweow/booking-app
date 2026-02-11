@@ -150,6 +150,7 @@ function ClientMessages({ userId }: { userId: string }) {
           currentUserId={userId}
           threadEndpoint={`/api/messages/${thread.bookingId}`}
           pollInterval={5000}
+          isClient
         />
         <MessageInput
           onSend={handleSend}
@@ -202,6 +203,7 @@ function ClientMessages({ userId }: { userId: string }) {
                 currentUserId={userId}
                 threadEndpoint={`/api/messages/${selectedBookingId}`}
                 pollInterval={5000}
+                isClient
               />
               <MessageInput
                 onSend={handleSend}
@@ -269,6 +271,7 @@ function ClientMessages({ userId }: { userId: string }) {
               currentUserId={userId}
               threadEndpoint={`/api/messages/${selectedBookingId}`}
               pollInterval={5000}
+              isClient
             />
             <MessageInput
               onSend={handleSend}

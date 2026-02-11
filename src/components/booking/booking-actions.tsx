@@ -10,6 +10,8 @@ import {
   X,
   Loader2,
   CheckCircle,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -38,6 +40,7 @@ import {
   declineBookingSchema,
   requestInfoSchema,
 } from "@/lib/validations/booking";
+import { RequestPaymentDialog } from "@/components/booking/request-payment-dialog";
 
 const approveFormSchema = z.object({
   duration: z.number().positive(),
@@ -425,18 +428,26 @@ export function BookingActions({
   bookingId,
   status,
   defaultDepositCents,
+  totalAmountCents,
+  unpaidPaymentRequestCount = 0,
 }: {
   bookingId: string;
   status: string;
   defaultDepositCents?: number | null;
+  totalAmountCents?: number | null;
+  unpaidPaymentRequestCount?: number;
 }) {
   const router = useRouter();
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [reopening, setReopening] = useState(false);
 
   function refresh() {
     router.refresh();
   }
 
   async function markComplete() {
+    setCompleting(true);
     try {
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: "PATCH",
@@ -451,17 +462,65 @@ export function BookingActions({
       }
 
       toast.success("Booking marked as complete");
+      setCompleteOpen(false);
       router.refresh();
     } catch {
       toast.error("Something went wrong");
+    } finally {
+      setCompleting(false);
+    }
+  }
+
+  async function reopenBooking() {
+    setReopening(true);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CONFIRMED" }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "Failed to reopen");
+        return;
+      }
+
+      toast.success("Booking reopened");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setReopening(false);
     }
   }
 
   if (status === "COMPLETED") {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-[hsl(82_8%_48%)]/30 bg-[hsl(82_8%_48%)]/10 p-3 text-sm text-[hsl(82_8%_48%)]">
-        <CheckCircle className="size-4" />
-        This appointment has been completed
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 rounded-lg border border-[hsl(82_8%_48%)]/30 bg-[hsl(82_8%_48%)]/10 p-3 text-sm text-[hsl(82_8%_48%)]">
+          <CheckCircle className="size-4" />
+          This appointment has been completed
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <RequestPaymentDialog
+            bookingId={bookingId}
+            defaultAmountCents={totalAmountCents}
+          />
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={reopenBooking}
+            disabled={reopening}
+          >
+            {reopening ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RotateCcw className="size-4" />
+            )}
+            {reopening ? "Reopening..." : "Reopen Booking"}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -472,13 +531,49 @@ export function BookingActions({
 
   if (status === "CONFIRMED") {
     return (
-      <Button
-        onClick={markComplete}
-        className="gap-2 bg-[hsl(82_8%_48%)] hover:bg-[hsl(82_8%_42%)]"
-      >
-        <CheckCircle className="size-4" />
-        Mark as Complete
-      </Button>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <RequestPaymentDialog
+          bookingId={bookingId}
+          defaultAmountCents={totalAmountCents}
+        />
+        <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2 bg-[hsl(82_8%_48%)] hover:bg-[hsl(82_8%_42%)]">
+              <CheckCircle className="size-4" />
+              Mark as Complete
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Mark Booking as Complete</DialogTitle>
+              <DialogDescription>
+                {unpaidPaymentRequestCount > 0
+                  ? `There ${unpaidPaymentRequestCount === 1 ? "is" : "are"} ${unpaidPaymentRequestCount} unpaid payment request${unpaidPaymentRequestCount === 1 ? "" : "s"}. Are you sure you want to complete this booking?`
+                  : "Are you sure you want to mark this booking as complete?"}
+              </DialogDescription>
+            </DialogHeader>
+            {unpaidPaymentRequestCount > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-400">
+                <AlertTriangle className="size-4 shrink-0" />
+                Unpaid payment requests will remain outstanding
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCompleteOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={markComplete}
+                disabled={completing}
+                className="bg-[hsl(82_8%_48%)] hover:bg-[hsl(82_8%_42%)]"
+              >
+                {completing && <Loader2 className="mr-2 size-4 animate-spin" />}
+                {completing ? "Completing..." : "Complete Anyway"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     );
   }
 

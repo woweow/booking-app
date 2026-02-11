@@ -174,6 +174,26 @@ ${button("Book Your Next Appointment", `${baseUrl}/bookings/new`)}
   };
 }
 
+export function paymentRequestEmail(
+  name: string,
+  amountCents: number,
+  note: string | null,
+  bookingLink: string
+): { subject: string; html: string } {
+  const formatted = (amountCents / 100).toFixed(2);
+  return {
+    subject: "Payment Requested - Studio Saturn",
+    html: wrap(
+      `Hi ${name},`,
+      `<p>Jane has requested a payment of <strong>$${formatted}</strong> for your booking.</p>
+${note ? `<p style="color:${sage};font-style:italic">"${note}"</p>` : ""}
+<p>You can view the details and pay securely through the link below.</p>
+${button("View & Pay", bookingLink)}
+<p style="font-size:13px;color:#666">You'll be redirected to a secure payment page to complete the transaction.</p>`
+    ),
+  };
+}
+
 export function passwordResetEmail(
   name: string,
   resetLink: string,

@@ -33,7 +33,7 @@ export async function GET() {
         messages: {
           orderBy: { createdAt: "desc" },
           take: 1,
-          select: { content: true, senderId: true, createdAt: true },
+          select: { content: true, senderId: true, createdAt: true, type: true },
         },
         _count: {
           select: {
@@ -63,6 +63,7 @@ export async function GET() {
             content: b.messages[0].content,
             senderId: b.messages[0].senderId,
             createdAt: b.messages[0].createdAt.toISOString(),
+            type: b.messages[0].type,
           }
         : null,
       unreadCount: b._count.messages,

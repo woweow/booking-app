@@ -34,6 +34,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: { bookingId },
       include: {
         sender: { select: { id: true, name: true } },
+        paymentRequest: true,
       },
       orderBy: { createdAt: "asc" },
     });

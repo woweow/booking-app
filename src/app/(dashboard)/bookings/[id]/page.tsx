@@ -109,6 +109,14 @@ type BookingDetail = {
     imageUrl: string;
     sizes: { size: string; priceAmountCents: number; durationMinutes: number }[];
   } | null;
+  paymentRequests?: {
+    id: string;
+    amountCents: number;
+    note?: string | null;
+    status: string;
+    paidAt?: string | null;
+    createdAt: string;
+  }[];
 };
 
 type Slot = { start: string; end: string };
@@ -224,11 +232,14 @@ function BookingDetailContent() {
 
   const isArtist = session?.user?.role === "ARTIST";
   const paymentParam = searchParams.get("payment");
+  const prParam = searchParams.get("pr");
 
   useEffect(() => {
     if (paymentParam === "success") toast.success("Deposit paid successfully!");
     if (paymentParam === "cancelled") toast.info("Payment was cancelled");
-  }, [paymentParam]);
+    if (prParam === "success") toast.success("Payment completed!");
+    if (prParam === "cancelled") toast.info("Payment was cancelled");
+  }, [paymentParam, prParam]);
 
   async function fetchBooking() {
     try {
@@ -648,7 +659,9 @@ function BookingDetailContent() {
               <CardContent className="space-y-2 text-sm">
                 {booking.depositAmount && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Deposit</span>
+                    <span className="text-muted-foreground">
+                      Deposit <span className="text-xs">(non-refundable)</span>
+                    </span>
                     <span className="font-medium">
                       ${(booking.depositAmount / 100).toFixed(2)}
                       {booking.depositPaidAt && (
@@ -666,27 +679,57 @@ function BookingDetailContent() {
                   <>
                     <Separator />
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total</span>
+                      <span className="text-muted-foreground">Service Estimate</span>
                       <span className="font-medium">
                         ${(booking.totalAmount / 100).toFixed(2)}
                       </span>
                     </div>
-                    {booking.depositAmount && booking.depositPaidAt && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Remaining
-                        </span>
-                        <span className="font-medium">
-                          $
-                          {(
-                            (booking.totalAmount - booking.depositAmount) /
-                            100
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                    )}
                   </>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Payment Requests */}
+          {booking.paymentRequests && booking.paymentRequests.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-medium">Payment Requests</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {booking.paymentRequests.map((pr) => (
+                  <div
+                    key={pr.id}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <div className="min-w-0">
+                      <span className="font-medium">
+                        ${(pr.amountCents / 100).toFixed(2)}
+                      </span>
+                      {pr.note && (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {pr.note}
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={
+                        pr.status === "PAID"
+                          ? "text-[hsl(82_8%_48%)] border-[hsl(82_8%_48%)]/30"
+                          : pr.status === "CANCELLED"
+                            ? "text-muted-foreground"
+                            : ""
+                      }
+                    >
+                      {pr.status === "PAID"
+                        ? "Paid"
+                        : pr.status === "CANCELLED"
+                          ? "Cancelled"
+                          : "Pending"}
+                    </Badge>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}
@@ -776,6 +819,12 @@ function BookingDetailContent() {
                   bookingId={booking.id}
                   status={booking.status}
                   defaultDepositCents={booking.book?.depositAmountCents}
+                  totalAmountCents={booking.totalAmount}
+                  unpaidPaymentRequestCount={
+                    booking.paymentRequests?.filter(
+                      (pr) => pr.status === "PENDING"
+                    ).length ?? 0
+                  }
                 />
               </CardContent>
             </Card>

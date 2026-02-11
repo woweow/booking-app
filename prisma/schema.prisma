@@ -57,6 +57,17 @@ enum ExceptionType {
   CUSTOM_HOURS
 }
 
+enum PaymentRequestStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum MessageType {
+  TEXT
+  PAYMENT_REQUEST
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -126,12 +137,13 @@ model Booking {
   chatEnabled Boolean @default(false)
 
   // Relationships
-  photos        BookingPhoto[]
-  consentForm   ConsentForm?
-  notifications ScheduledNotification[]
-  timeBlocks    TimeBlock[]
-  bookingLink   BookingLink?
-  messages      Message[]
+  photos          BookingPhoto[]
+  consentForm     ConsentForm?
+  notifications   ScheduledNotification[]
+  timeBlocks      TimeBlock[]
+  bookingLink     BookingLink?
+  messages        Message[]
+  paymentRequests PaymentRequest[]
 }
 
 model BookingPhoto {
@@ -144,17 +156,37 @@ model BookingPhoto {
 }
 
 model Message {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   bookingId String
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking   Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   senderId  String
-  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
+  sender    User        @relation("MessageSender", fields: [senderId], references: [id])
   content   String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  type      MessageType @default(TEXT)
+  read      Boolean     @default(false)
+  createdAt DateTime    @default(now())
+
+  paymentRequestId String?         @unique
+  paymentRequest   PaymentRequest? @relation(fields: [paymentRequestId], references: [id])
 
   @@index([bookingId, createdAt])
   @@index([bookingId, read])
+}
+
+model PaymentRequest {
+  id                      String               @id @default(cuid())
+  bookingId               String
+  booking                 Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amountCents             Int
+  note                    String?
+  status                  PaymentRequestStatus @default(PENDING)
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
+  paidAt                  DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  message Message?
 }
 
 model ConsentForm {

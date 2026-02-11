@@ -29,6 +29,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           select: { id: true, name: true, type: true, depositAmountCents: true },
         },
         flashPiece: { include: { sizes: true } },
+        paymentRequests: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
@@ -98,6 +101,30 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           resourceId: id,
           result: AuditResult.SUCCESS,
           details: { status: "COMPLETED" },
+          request,
+        });
+
+        return NextResponse.json({ booking: updated });
+      }
+
+      // Reopen booking (COMPLETED → CONFIRMED)
+      if (body.status === BookingStatus.CONFIRMED && booking.status === BookingStatus.COMPLETED) {
+        const updated = await prisma.booking.update({
+          where: { id },
+          data: { status: BookingStatus.CONFIRMED },
+          include: {
+            client: { select: { id: true, name: true, email: true, phone: true } },
+            photos: true,
+          },
+        });
+
+        await createAuditLog({
+          action: AuditAction.BOOKING_REOPENED,
+          userId: session.user.id,
+          userEmail: session.user.email!,
+          resourceType: ResourceType.BOOKING,
+          resourceId: id,
+          result: AuditResult.SUCCESS,
           request,
         });
 

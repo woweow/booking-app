@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
-import { BookingStatus } from "@prisma/client";
+import { BookingStatus, PaymentRequestStatus } from "@prisma/client";
 import { createAuditLog, AuditAction, AuditResult, ResourceType } from "@/lib/audit";
 import Stripe from "stripe";
 
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const bookingId = session.metadata?.bookingId;
+      const metadataType = session.metadata?.type;
 
       if (!bookingId) {
         console.error("Webhook: No bookingId in session metadata");
@@ -63,36 +64,78 @@ export async function POST(request: NextRequest) {
           ? session.payment_intent
           : session.payment_intent?.id || null;
 
-      await prisma.$transaction([
-        prisma.booking.update({
-          where: { id: bookingId },
-          data: {
-            status: BookingStatus.CONFIRMED,
-            depositPaidAt: new Date(),
-            stripePaymentIntentId: paymentIntentId,
-          },
-        }),
-        prisma.processedWebhookEvent.create({
-          data: {
-            eventId: event.id,
-            eventType: event.type,
-            eventCreated: new Date(event.created * 1000),
-          },
-        }),
-      ]);
+      if (metadataType === "payment_request") {
+        // Payment request flow
+        const paymentRequestId = session.metadata?.paymentRequestId;
+        if (!paymentRequestId) {
+          console.error("Webhook: No paymentRequestId in session metadata");
+          return NextResponse.json({ received: true });
+        }
 
-      await createAuditLog({
-        action: AuditAction.PAYMENT_COMPLETED,
-        userId: session.metadata?.clientId || null,
-        resourceType: ResourceType.PAYMENT,
-        resourceId: bookingId,
-        result: AuditResult.SUCCESS,
-        details: {
-          eventId: event.id,
-          paymentIntentId,
-          amount: session.amount_total,
-        },
-      });
+        await prisma.$transaction([
+          prisma.paymentRequest.update({
+            where: { id: paymentRequestId },
+            data: {
+              status: PaymentRequestStatus.PAID,
+              paidAt: new Date(),
+              stripePaymentIntentId: paymentIntentId,
+            },
+          }),
+          prisma.processedWebhookEvent.create({
+            data: {
+              eventId: event.id,
+              eventType: event.type,
+              eventCreated: new Date(event.created * 1000),
+            },
+          }),
+        ]);
+
+        await createAuditLog({
+          action: AuditAction.PAYMENT_REQUEST_PAID,
+          userId: session.metadata?.clientId || null,
+          resourceType: ResourceType.PAYMENT_REQUEST,
+          resourceId: paymentRequestId,
+          result: AuditResult.SUCCESS,
+          details: {
+            eventId: event.id,
+            bookingId,
+            paymentIntentId,
+            amount: session.amount_total,
+          },
+        });
+      } else {
+        // Deposit flow (default / legacy)
+        await prisma.$transaction([
+          prisma.booking.update({
+            where: { id: bookingId },
+            data: {
+              status: BookingStatus.CONFIRMED,
+              depositPaidAt: new Date(),
+              stripePaymentIntentId: paymentIntentId,
+            },
+          }),
+          prisma.processedWebhookEvent.create({
+            data: {
+              eventId: event.id,
+              eventType: event.type,
+              eventCreated: new Date(event.created * 1000),
+            },
+          }),
+        ]);
+
+        await createAuditLog({
+          action: AuditAction.PAYMENT_COMPLETED,
+          userId: session.metadata?.clientId || null,
+          resourceType: ResourceType.PAYMENT,
+          resourceId: bookingId,
+          result: AuditResult.SUCCESS,
+          details: {
+            eventId: event.id,
+            paymentIntentId,
+            amount: session.amount_total,
+          },
+        });
+      }
     } else if (event.type === "checkout.session.expired") {
       // Session expired without payment - just record it
       await prisma.processedWebhookEvent.create({

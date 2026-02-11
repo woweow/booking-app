@@ -317,7 +317,7 @@ export default function BooksPage() {
                     <FormItem>
                       <FormLabel>Opens (optional)</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" {...field} className={field.value ? "" : "text-transparent"} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -330,7 +330,7 @@ export default function BooksPage() {
                     <FormItem>
                       <FormLabel>Closes (optional)</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" {...field} className={field.value ? "" : "text-transparent"} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

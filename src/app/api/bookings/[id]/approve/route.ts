@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { UserRole, BookingStatus } from "@prisma/client";
 import { approveBookingSchema } from "@/lib/validations/booking";
 import { createAuditLog, AuditAction, AuditResult, ResourceType } from "@/lib/audit";
+import { scheduleBookingNotifications } from "@/lib/notifications";
+import { sendEmail, depositRequestEmail } from "@/lib/email";
+import { sendSMS, bookingApprovedSMS } from "@/lib/sms";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -86,6 +89,38 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
       request,
     });
+
+    // Schedule automated notifications (non-blocking)
+    scheduleBookingNotifications(id, appointmentDateTime).catch((err) =>
+      console.error("Failed to schedule notifications:", err)
+    );
+
+    // Send immediate deposit request email and SMS (non-blocking)
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const paymentLink = `${baseUrl}/bookings/${id}`;
+    const apptDateStr = appointmentDateTime.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const emailData = depositRequestEmail(
+      updated.client.name,
+      depositAmountCents,
+      apptDateStr,
+      paymentLink
+    );
+    sendEmail(updated.client.email, emailData.subject, emailData.html).catch((err) =>
+      console.error("Failed to send deposit email:", err)
+    );
+
+    if (updated.client.phone) {
+      const smsBody = bookingApprovedSMS(updated.client.name, apptDateStr);
+      sendSMS(updated.client.phone, smsBody).catch((err) =>
+        console.error("Failed to send approval SMS:", err)
+      );
+    }
 
     return NextResponse.json({ booking: updated });
   } catch (error) {

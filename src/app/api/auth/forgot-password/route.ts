@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { ForgotPasswordSchema } from "@/lib/validations/auth";
 import { logPasswordResetRequested } from "@/lib/audit";
 import { checkRateLimit, passwordResetRateLimiter, getClientIp } from "@/lib/rate-limit";
+import { sendEmail, passwordResetEmail } from "@/lib/email";
 
 const TOKEN_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
 const TOKEN_BYTE_LENGTH = 32;
@@ -63,11 +64,15 @@ export async function POST(request: NextRequest) {
     // Audit log
     await logPasswordResetRequested(email, request);
 
-    // TODO: Send email with plainToken via Resend
-    // For now, log the token in development
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[DEV] Password reset token for ${email}: ${plainToken}`);
-    }
+    // Send password reset email
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const resetLink = `${baseUrl}/reset-password?token=${plainToken}`;
+    const TOKEN_EXPIRATION_MINUTES = 60;
+
+    const emailData = passwordResetEmail(user.name, resetLink, TOKEN_EXPIRATION_MINUTES);
+    sendEmail(email, emailData.subject, emailData.html).catch((err) =>
+      console.error("Failed to send password reset email:", err)
+    );
 
     return NextResponse.json({ message: successMessage });
   } catch (error) {

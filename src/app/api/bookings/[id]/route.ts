@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { UserRole, BookingStatus } from "@prisma/client";
 import { updateBookingClientSchema, requestInfoSchema } from "@/lib/validations/booking";
 import { createAuditLog, AuditAction, AuditResult, ResourceType } from "@/lib/audit";
+import { cancelBookingNotifications } from "@/lib/notifications";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -246,16 +247,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Soft delete: set status to CANCELLED and cancel pending notifications
-    await prisma.$transaction([
-      prisma.booking.update({
-        where: { id },
-        data: { status: BookingStatus.CANCELLED },
-      }),
-      prisma.scheduledNotification.updateMany({
-        where: { bookingId: id, sentAt: null },
-        data: { sentAt: new Date() }, // Mark as "sent" to prevent future sending
-      }),
-    ]);
+    await prisma.booking.update({
+      where: { id },
+      data: { status: BookingStatus.CANCELLED },
+    });
+
+    // Cancel pending notifications (non-blocking)
+    cancelBookingNotifications(id).catch((err) =>
+      console.error("Failed to cancel notifications:", err)
+    );
 
     await createAuditLog({
       action: AuditAction.BOOKING_CANCELLED,

@@ -11,28 +11,37 @@ const publicPaths = [
 function isPublicPath(pathname: string): boolean {
   if (publicPaths.includes(pathname)) return true;
   if (pathname.startsWith("/api/auth/")) return true;
+  if (pathname.startsWith("/api/webhooks/")) return true;
+  if (pathname.startsWith("/api/cron/")) return true;
   return false;
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (isPublicPath(pathname)) {
-    return NextResponse.next();
-  }
+  // Security headers on all responses
+  const response = isPublicPath(pathname)
+    ? NextResponse.next()
+    : (() => {
+        const sessionToken =
+          request.cookies.get("authjs.session-token")?.value ||
+          request.cookies.get("__Secure-authjs.session-token")?.value;
 
-  // Check for session token in cookies
-  const sessionToken =
-    request.cookies.get("authjs.session-token")?.value ||
-    request.cookies.get("__Secure-authjs.session-token")?.value;
+        if (!sessionToken) {
+          const loginUrl = new URL("/login", request.url);
+          loginUrl.searchParams.set("callbackUrl", pathname);
+          return NextResponse.redirect(loginUrl);
+        }
 
-  if (!sessionToken) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+        return NextResponse.next();
+      })();
 
-  return NextResponse.next();
+  // Add security headers
+  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+
+  return response;
 }
 
 export const config = {

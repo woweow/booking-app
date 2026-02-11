@@ -40,6 +40,7 @@ type BookDetail = {
   description?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  depositAmountCents?: number | null;
   availableHours: AvailableHours;
 };
 
@@ -67,10 +68,13 @@ export default function BookDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingDates, setSavingDates] = useState(false);
+  const [savingDeposit, setSavingDeposit] = useState(false);
   const [hours, setHours] = useState<AvailableHours>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
   const [editingDates, setEditingDates] = useState(false);
+  const [editingDeposit, setEditingDeposit] = useState(false);
 
   useEffect(() => {
     async function fetchBook() {
@@ -86,6 +90,9 @@ export default function BookDetailPage() {
           );
           setStartDate(toInputDate(data.startDate));
           setEndDate(toInputDate(data.endDate));
+          setDepositAmount(
+            data.depositAmountCents ? (data.depositAmountCents / 100).toString() : ""
+          );
         }
       } catch {
         // silently fail
@@ -160,6 +167,32 @@ export default function BookDetailPage() {
       toast.error("Something went wrong");
     } finally {
       setSavingDates(false);
+    }
+  }
+
+  async function handleSaveDeposit() {
+    setSavingDeposit(true);
+    try {
+      const cents = depositAmount ? Math.round(parseFloat(depositAmount) * 100) : null;
+      const res = await fetch(`/api/books/${params.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ depositAmountCents: cents }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setBook(data);
+        setEditingDeposit(false);
+        toast.success("Default deposit updated");
+      } else {
+        const errData = await res.json();
+        toast.error(errData.error || "Failed to save deposit");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setSavingDeposit(false);
     }
   }
 
@@ -308,6 +341,73 @@ export default function BookDetailPage() {
                   <span className="text-muted-foreground">Closes</span>
                   <span className="font-medium">{formatDate(book.endDate)}</span>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        {/* Default Deposit Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-medium">Default Deposit</CardTitle>
+              {!editingDeposit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingDeposit(true)}
+                >
+                  <Pencil className="mr-1 size-3" />
+                  Edit
+                </Button>
+              )}
+            </div>
+            <CardDescription>
+              Pre-filled deposit amount when approving bookings from this book
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {editingDeposit ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="depositAmount">Deposit Amount ($)</Label>
+                  <Input
+                    id="depositAmount"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="e.g. 100"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveDeposit} disabled={savingDeposit} size="sm">
+                    {savingDeposit && <Loader2 className="mr-2 size-4 animate-spin" />}
+                    {savingDeposit ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDepositAmount(
+                        book.depositAmountCents
+                          ? (book.depositAmountCents / 100).toString()
+                          : ""
+                      );
+                      setEditingDeposit(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm">
+                <span className="font-medium">
+                  {book.depositAmountCents
+                    ? `$${(book.depositAmountCents / 100).toFixed(2)}`
+                    : "Not set"}
+                </span>
               </div>
             )}
           </CardContent>

@@ -81,8 +81,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    // Extract availableHours before validation (not in zod schema)
-    const { availableHours, ...rest } = body;
+    // Extract fields handled outside zod schema
+    const { availableHours, depositAmountCents, ...rest } = body;
 
     const result = updateBookSchema.safeParse(rest);
 
@@ -97,6 +97,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const data: Record<string, unknown> = { ...parsedRest };
     if (startDate !== undefined) data.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) data.endDate = endDate ? new Date(endDate) : null;
+
+    // Handle depositAmountCents
+    if (depositAmountCents !== undefined) {
+      data.depositAmountCents = depositAmountCents;
+    }
 
     // Flatten availableHours object into individual day columns
     if (availableHours && typeof availableHours === "object") {

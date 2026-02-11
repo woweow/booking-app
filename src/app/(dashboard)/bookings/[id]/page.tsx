@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/booking/status-badge";
 import { BookingActions } from "@/components/booking/booking-actions";
+import { AvailabilityPicker } from "@/components/booking/availability-picker";
 import {
   PaymentRequired,
   PaymentSuccess,
@@ -58,9 +59,18 @@ const sizeLabels: Record<string, string> = {
   EXTRA_LARGE: "Extra Large (Over 6\")",
 };
 
+function formatTime(time: string): string {
+  const [h, m] = time.split(":");
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const display = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${display}:${m} ${ampm}`;
+}
+
 type BookingDetail = {
   id: string;
   status: string;
+  bookingType: string;
   description: string;
   size: string;
   placement: string;
@@ -70,6 +80,8 @@ type BookingDetail = {
   artistNotes?: string | null;
   declineReason?: string | null;
   appointmentDate?: string | null;
+  scheduledStartTime?: string | null;
+  scheduledEndTime?: string | null;
   duration?: number | null;
   depositAmount?: number | null;
   totalAmount?: number | null;
@@ -84,7 +96,114 @@ type BookingDetail = {
   };
   photos?: { id: string; blobUrl: string; filename: string }[];
   consentForm?: { id: string; signedAt: string } | null;
+  book?: {
+    id: string;
+    name: string;
+    type: string;
+    depositAmountCents?: number | null;
+  } | null;
 };
+
+type Slot = { start: string; end: string };
+
+function ScheduleSection({
+  bookingId,
+  bookId,
+  duration,
+  onScheduled,
+}: {
+  bookingId: string;
+  bookId: string;
+  duration: number;
+  onScheduled: () => void;
+}) {
+  const [selectedDate, setSelectedDate] = useState<string | undefined>();
+  const [selectedSlot, setSelectedSlot] = useState<Slot | undefined>();
+  const [scheduling, setScheduling] = useState(false);
+
+  function handleSlotSelect(date: string, slot: Slot) {
+    setSelectedDate(date);
+    setSelectedSlot(slot);
+  }
+
+  async function handleConfirm() {
+    if (!selectedDate || !selectedSlot) return;
+
+    setScheduling(true);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          startTime: selectedSlot.start,
+          endTime: selectedSlot.end,
+        }),
+      });
+
+      if (res.status === 409) {
+        const data = await res.json();
+        const altMsg = data.alternativeSlot
+          ? ` Try ${formatTime(data.alternativeSlot.start)} - ${formatTime(data.alternativeSlot.end)} instead.`
+          : "";
+        toast.error(`That slot was just taken.${altMsg}`);
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Failed to schedule");
+        return;
+      }
+
+      toast.success("Appointment scheduled! Please pay your deposit to confirm.");
+      onScheduled();
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setScheduling(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-medium">Choose Your Appointment Time</CardTitle>
+        <CardDescription>
+          Select a date and time slot for your session
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <AvailabilityPicker
+          bookId={bookId}
+          duration={duration}
+          onSlotSelect={handleSlotSelect}
+          selectedDate={selectedDate}
+          selectedSlot={selectedSlot}
+        />
+
+        {selectedDate && selectedSlot && (
+          <div className="flex flex-col gap-3 rounded-lg border border-[hsl(82_8%_48%)]/30 bg-[hsl(82_8%_48%)]/5 p-4">
+            <div className="text-sm">
+              <span className="font-medium">Selected: </span>
+              {format(new Date(selectedDate + "T12:00:00"), "EEEE, MMMM d, yyyy")}
+              {" at "}
+              {formatTime(selectedSlot.start)} - {formatTime(selectedSlot.end)}
+            </div>
+            <Button
+              onClick={handleConfirm}
+              disabled={scheduling}
+              className="w-full bg-[hsl(82_8%_48%)] hover:bg-[hsl(82_8%_42%)] sm:w-auto"
+            >
+              {scheduling && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {scheduling ? "Confirming..." : "Confirm This Time"}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function BookingDetailContent() {
   const params = useParams();
@@ -104,22 +223,23 @@ function BookingDetailContent() {
     if (paymentParam === "cancelled") toast.info("Payment was cancelled");
   }, [paymentParam]);
 
-  useEffect(() => {
-    async function fetchBooking() {
-      try {
-        const res = await fetch(`/api/bookings/${params.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setBooking(data.booking ?? data);
-        }
-      } catch {
-        // silently fail
-      } finally {
-        setLoading(false);
+  async function fetchBooking() {
+    try {
+      const res = await fetch(`/api/bookings/${params.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBooking(data.booking ?? data);
       }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     fetchBooking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   async function handleCancel() {
@@ -279,6 +399,26 @@ function BookingDetailContent() {
             )}
           {booking.depositPaidAt && (
             <DepositPaid paidAt={booking.depositPaidAt} />
+          )}
+
+          {/* Client self-scheduling (APPROVED status) */}
+          {!isArtist && booking.status === "APPROVED" && booking.book?.id && booking.duration && (
+            <ScheduleSection
+              bookingId={booking.id}
+              bookId={booking.book.id}
+              duration={booking.duration}
+              onScheduled={() => fetchBooking()}
+            />
+          )}
+          {!isArtist && booking.status === "APPROVED" && !booking.book?.id && (
+            <Card className="border-accent">
+              <CardContent className="flex items-center gap-3 py-6">
+                <AlertCircle className="size-5 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  No appointment times available yet. Check back soon!
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {/* Client info (artist view) */}
@@ -444,7 +584,9 @@ function BookingDetailContent() {
                 <div className="flex items-center gap-3">
                   <Clock className="size-5 text-muted-foreground" />
                   <span>
-                    {format(new Date(booking.appointmentDate), "h:mm a")}
+                    {booking.scheduledStartTime && booking.scheduledEndTime
+                      ? `${formatTime(booking.scheduledStartTime)} - ${formatTime(booking.scheduledEndTime)}`
+                      : format(new Date(booking.appointmentDate), "h:mm a")}
                   </span>
                 </div>
                 {booking.duration && (
@@ -593,6 +735,7 @@ function BookingDetailContent() {
                 <BookingActions
                   bookingId={booking.id}
                   status={booking.status}
+                  defaultDepositCents={booking.book?.depositAmountCents}
                 />
               </CardContent>
             </Card>

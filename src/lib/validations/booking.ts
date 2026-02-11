@@ -29,12 +29,16 @@ export const updateBookingClientSchema = z.object({
 });
 
 export const approveBookingSchema = z.object({
-  appointmentDate: z.string().min(1, "Appointment date is required"),
-  appointmentTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
   duration: z.number().int().positive().default(120),
   depositAmount: z.number().positive("Deposit amount must be positive"),
   totalAmount: z.number().positive().optional(),
   artistNotes: z.string().optional(),
+});
+
+export const scheduleBookingSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
 });
 
 export const declineBookingSchema = z.object({

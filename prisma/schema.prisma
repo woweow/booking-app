@@ -107,12 +107,14 @@ model Booking {
   medicalNotes   String?
 
   // Confirmed details (populated when appointment scheduled)
-  appointmentDate DateTime?
-  duration        Int?       // in minutes
-  depositAmount   Int?       // in cents
-  totalAmount     Int?       // in cents
-  artistNotes     String?
-  declineReason   String?
+  appointmentDate    DateTime?
+  scheduledStartTime String?   // HH:MM — set when client picks a slot
+  scheduledEndTime   String?   // HH:MM — set when client picks a slot
+  duration           Int?      // in minutes
+  depositAmount      Int?      // in cents
+  totalAmount        Int?      // in cents
+  artistNotes        String?
+  declineReason      String?
 
   // Payment tracking
   stripePaymentIntentId String?
@@ -269,6 +271,8 @@ model Book {
   saturdayEnd    String?
   sundayStart    String?
   sundayEnd      String?
+
+  depositAmountCents Int? // default deposit for bookings in this book
 
   bookings    Booking[]
   flashPieces FlashPiece[]

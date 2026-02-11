@@ -25,6 +25,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         photos: true,
         consentForm: true,
+        book: {
+          select: { id: true, name: true, type: true, depositAmountCents: true },
+        },
       },
     });
 

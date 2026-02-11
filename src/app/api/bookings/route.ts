@@ -75,10 +75,16 @@ export async function POST(request: NextRequest) {
     const { description, size, placement, isFirstTattoo, preferredDates, medicalNotes, photoUrls } =
       result.data;
 
+    // Auto-assign the active Custom book if one exists
+    const activeCustomBook = await prisma.book.findFirst({
+      where: { type: "CUSTOM", isActive: true },
+    });
+
     const booking = await prisma.booking.create({
       data: {
         clientId: session.user.id,
         bookingType: "CUSTOM",
+        bookId: activeCustomBook?.id ?? null,
         description,
         size,
         placement,
@@ -99,6 +105,7 @@ export async function POST(request: NextRequest) {
           select: { id: true, name: true, email: true, phone: true },
         },
         photos: true,
+        book: true,
       },
     });
 

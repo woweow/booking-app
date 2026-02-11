@@ -4,9 +4,8 @@ import { auth } from "@/lib/auth";
 import { UserRole, BookingStatus } from "@prisma/client";
 import { approveBookingSchema } from "@/lib/validations/booking";
 import { createAuditLog, AuditAction, AuditResult, ResourceType } from "@/lib/audit";
-import { scheduleBookingNotifications } from "@/lib/notifications";
-import { sendEmail, depositRequestEmail } from "@/lib/email";
-import { sendSMS, bookingApprovedSMS } from "@/lib/sms";
+import { sendEmail, bookingApprovedEmail } from "@/lib/email";
+import { sendSMS } from "@/lib/sms";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -25,6 +24,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const booking = await prisma.booking.findUnique({
       where: { id },
+      include: {
+        book: { select: { id: true, depositAmountCents: true } },
+      },
     });
 
     if (!booking) {
@@ -49,11 +51,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Validation failed", errors }, { status: 400 });
     }
 
-    const { appointmentDate, appointmentTime, duration, depositAmount, totalAmount, artistNotes } =
-      result.data;
-
-    // Combine date and time
-    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00`);
+    const { duration, depositAmount, totalAmount, artistNotes } = result.data;
 
     // Convert dollars to cents
     const depositAmountCents = Math.round(depositAmount * 100);
@@ -62,8 +60,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const updated = await prisma.booking.update({
       where: { id },
       data: {
-        status: BookingStatus.AWAITING_DEPOSIT,
-        appointmentDate: appointmentDateTime,
+        status: BookingStatus.APPROVED,
         duration,
         depositAmount: depositAmountCents,
         totalAmount: totalAmountCents,
@@ -73,6 +70,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       include: {
         client: { select: { id: true, name: true, email: true, phone: true } },
         photos: true,
+        book: { select: { id: true, name: true, type: true, depositAmountCents: true } },
       },
     });
 
@@ -84,40 +82,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       resourceId: id,
       result: AuditResult.SUCCESS,
       details: {
-        appointmentDate: appointmentDateTime.toISOString(),
         depositAmountCents,
         clientId: booking.clientId,
       },
       request,
     });
 
-    // Schedule automated notifications (non-blocking)
-    scheduleBookingNotifications(id, appointmentDateTime).catch((err) =>
-      console.error("Failed to schedule notifications:", err)
-    );
-
-    // Send immediate deposit request email and SMS (non-blocking)
+    // Send "pick your time" email (non-blocking)
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const paymentLink = `${baseUrl}/bookings/${id}`;
-    const apptDateStr = appointmentDateTime.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const bookingLink = `${baseUrl}/bookings/${id}`;
 
-    const emailData = depositRequestEmail(
-      updated.client.name,
-      depositAmountCents,
-      apptDateStr,
-      paymentLink
-    );
+    const emailData = bookingApprovedEmail(updated.client.name, bookingLink);
     sendEmail(updated.client.email, emailData.subject, emailData.html).catch((err) =>
-      console.error("Failed to send deposit email:", err)
+      console.error("Failed to send approval email:", err)
     );
 
     if (updated.client.phone) {
-      const smsBody = bookingApprovedSMS(updated.client.name, apptDateStr);
+      const smsBody = `Hi ${updated.client.name}! Your booking at Studio Saturn has been approved. Choose your appointment time: ${bookingLink}`;
       sendSMS(updated.client.phone, smsBody).catch((err) =>
         console.error("Failed to send approval SMS:", err)
       );

@@ -34,22 +34,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   declineBookingSchema,
   requestInfoSchema,
 } from "@/lib/validations/booking";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 
 const approveFormSchema = z.object({
-  appointmentDate: z.string().min(1, "Appointment date is required"),
-  appointmentTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
   duration: z.number().positive(),
   depositAmount: z.number().positive("Deposit amount must be positive"),
   totalAmount: z.number().positive().optional(),
@@ -63,20 +53,19 @@ type RequestInfoValues = z.infer<typeof requestInfoSchema>;
 function ApproveDialog({
   bookingId,
   onSuccess,
+  defaultDepositCents,
 }: {
   bookingId: string;
   onSuccess: () => void;
+  defaultDepositCents?: number | null;
 }) {
   const [open, setOpen] = useState(false);
-  const [calendarDate, setCalendarDate] = useState<Date | undefined>();
 
   const form = useForm<ApproveValues>({
     resolver: zodResolver(approveFormSchema),
     defaultValues: {
-      appointmentDate: "",
-      appointmentTime: "",
       duration: 2,
-      depositAmount: 100,
+      depositAmount: defaultDepositCents ? defaultDepositCents / 100 : 100,
       totalAmount: undefined,
       artistNotes: "",
     },
@@ -121,64 +110,11 @@ function ApproveDialog({
         <DialogHeader>
           <DialogTitle>Approve Booking</DialogTitle>
           <DialogDescription>
-            Set the appointment details and deposit amount
+            Set the session duration and deposit amount
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="appointmentDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Appointment Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? format(new Date(field.value), "PPP")
-                            : "Pick a date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={calendarDate}
-                        onSelect={(date) => {
-                          setCalendarDate(date);
-                          if (date) field.onChange(date.toISOString().split("T")[0]);
-                        }}
-                        disabled={(date) => date < new Date()}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="appointmentTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Appointment Time</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="duration"
@@ -190,11 +126,10 @@ function ApproveDialog({
                       type="number"
                       min={1}
                       step={1}
-                      {...field}
-                      value={field.value === "" ? "" : field.value}
+                      value={field.value ?? ""}
                       onChange={(e) => {
                         const val = e.target.value;
-                        field.onChange(val === "" ? "" : Number(val));
+                        field.onChange(val === "" ? undefined : Number(val));
                       }}
                     />
                   </FormControl>
@@ -489,9 +424,11 @@ function DeclineDialog({
 export function BookingActions({
   bookingId,
   status,
+  defaultDepositCents,
 }: {
   bookingId: string;
   status: string;
+  defaultDepositCents?: number | null;
 }) {
   const router = useRouter();
 
@@ -551,7 +488,11 @@ export function BookingActions({
   ) {
     return (
       <div className="flex flex-col gap-2 sm:flex-row">
-        <ApproveDialog bookingId={bookingId} onSuccess={refresh} />
+        <ApproveDialog
+          bookingId={bookingId}
+          onSuccess={refresh}
+          defaultDepositCents={defaultDepositCents}
+        />
         <RequestInfoDialog bookingId={bookingId} onSuccess={refresh} />
         <DeclineDialog bookingId={bookingId} onSuccess={refresh} />
       </div>

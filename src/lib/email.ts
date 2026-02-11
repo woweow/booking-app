@@ -79,6 +79,22 @@ ${button("View Your Booking", `${baseUrl}/bookings/${bookingId}`)}`
   };
 }
 
+export function bookingApprovedEmail(
+  name: string,
+  bookingLink: string
+): { subject: string; html: string } {
+  return {
+    subject: "Booking Approved — Choose Your Appointment Time",
+    html: wrap(
+      `Hi ${name},`,
+      `<p>Your booking has been approved! The next step is to choose your appointment time.</p>
+<p>Click below to view available dates and pick the slot that works best for you.</p>
+${button("Choose Your Time", bookingLink)}
+<p style="font-size:13px;color:#666">Once you've selected a time, you'll be asked to pay the deposit to confirm.</p>`
+    ),
+  };
+}
+
 export function depositRequestEmail(
   name: string,
   amount: number,

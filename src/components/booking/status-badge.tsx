@@ -17,7 +17,11 @@ const statusConfig: Record<
 > = {
   PENDING: { label: "Pending Review", variant: "outline" },
   INFO_REQUESTED: { label: "Info Requested", variant: "secondary" },
-  APPROVED: { label: "Approved", variant: "default" },
+  APPROVED: {
+    label: "Pick Your Time",
+    variant: "default",
+    className: "bg-amber-500 hover:bg-amber-600 text-white",
+  },
   AWAITING_DEPOSIT: { label: "Awaiting Deposit", variant: "secondary" },
   CONFIRMED: {
     label: "Confirmed",

@@ -34,9 +34,11 @@ export type BookingCardData = {
 export function BookingCard({
   booking,
   showClient = false,
+  isArtist = false,
 }: {
   booking: BookingCardData;
   showClient?: boolean;
+  isArtist?: boolean;
 }) {
   return (
     <Link href={`/bookings/${booking.id}`}>
@@ -50,7 +52,7 @@ export function BookingCard({
               {booking.description}
             </p>
           </div>
-          <StatusBadge status={booking.status} />
+          <StatusBadge status={booking.status} isArtist={isArtist} />
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">

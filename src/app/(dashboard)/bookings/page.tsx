@@ -165,6 +165,7 @@ export default function BookingsPage() {
               key={booking.id}
               booking={booking}
               showClient={isArtist}
+              isArtist={isArtist}
             />
           ))}
         </div>

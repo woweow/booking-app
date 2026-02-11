@@ -317,7 +317,7 @@ function BookingDetailContent() {
               <h1 className="text-2xl font-light tracking-wide">
                 Booking Details
               </h1>
-              <StatusBadge status={booking.status} />
+              <StatusBadge status={booking.status} isArtist={isArtist} />
             </div>
             <p className="text-sm text-muted-foreground">
               {booking.createdAt

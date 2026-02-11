@@ -72,6 +72,13 @@ export default function DashboardPage() {
             pending,
           });
         }
+
+        // Fetch unread messages
+        const unreadRes = await fetch("/api/messages/unread");
+        if (unreadRes.ok) {
+          const unreadData = await unreadRes.json();
+          setStats((prev) => ({ ...prev, unread: unreadData.count || 0 }));
+        }
       } catch {
         // silently fail, show empty state
       } finally {

@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,12 @@ function ClientMessages({ userId }: { userId: string }) {
             Chat will be available once your booking is reviewed.
           </p>
         </div>
+        <Button asChild>
+          <Link href="/bookings/new">
+            <Plus className="mr-1.5 size-4" />
+            Create your first booking
+          </Link>
+        </Button>
       </Card>
     );
   }

@@ -12,6 +12,7 @@ import {
   Calendar,
   BookOpen,
   LogOut,
+  Zap,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ type NavItem = {
 
 const clientNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
+  { label: "Flash", href: "/flash", icon: Zap },
   { label: "Bookings", href: "/bookings", icon: CalendarDays },
   { label: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Profile", href: "/profile", icon: UserCircle },

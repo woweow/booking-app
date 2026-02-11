@@ -10,6 +10,8 @@ import {
   Plus,
   MessageSquare,
   Loader2,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,10 +32,21 @@ type Stats = {
   unread?: number;
 };
 
+type FlashBook = {
+  id: string;
+  name: string;
+  description: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  pieceCount: number;
+  priceRange: { min: number | null; max: number | null } | null;
+};
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [bookings, setBookings] = useState<BookingCardData[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, active: 0, upcoming: 0 });
+  const [flashBooks, setFlashBooks] = useState<FlashBook[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isArtist = session?.user?.role === "ARTIST";
@@ -78,6 +91,13 @@ export default function DashboardPage() {
         if (unreadRes.ok) {
           const unreadData = await unreadRes.json();
           setStats((prev) => ({ ...prev, unread: unreadData.count || 0 }));
+        }
+
+        // Fetch flash books for clients
+        const flashRes = await fetch("/api/flash-catalog");
+        if (flashRes.ok) {
+          const flashData = await flashRes.json();
+          setFlashBooks(flashData.books || []);
         }
       } catch {
         // silently fail, show empty state
@@ -167,6 +187,57 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Flash books for clients */}
+      {!isArtist && flashBooks.length > 0 && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-medium flex items-center gap-2">
+              <Zap className="size-5" />
+              Flash Books
+            </h2>
+            <Button variant="ghost" asChild>
+              <Link href="/flash" className="gap-1">
+                Browse All Flash Books
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {flashBooks.slice(0, 3).map((book) => (
+              <Link key={book.id} href={`/flash/${book.id}`}>
+                <Card className="transition-colors hover:border-ring">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">{book.name}</CardTitle>
+                    {book.description && (
+                      <CardDescription className="line-clamp-2">
+                        {book.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{book.pieceCount} {book.pieceCount === 1 ? "piece" : "pieces"}</span>
+                      {book.priceRange && book.priceRange.min != null && book.priceRange.max != null && (
+                        <span>
+                          ${(book.priceRange.min / 100).toFixed(0)} - ${(book.priceRange.max / 100).toFixed(0)}
+                        </span>
+                      )}
+                    </div>
+                    {(book.startDate || book.endDate) && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {book.startDate && format(new Date(book.startDate), "MMM d")}
+                        {book.startDate && book.endDate && " – "}
+                        {book.endDate && format(new Date(book.endDate), "MMM d, yyyy")}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent bookings */}
       <div>

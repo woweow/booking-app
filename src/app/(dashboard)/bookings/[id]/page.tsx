@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -9,7 +9,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
-  CreditCard,
+  Download,
   FileText,
   Loader2,
   Mail,
@@ -43,6 +43,12 @@ import {
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/booking/status-badge";
 import { BookingActions } from "@/components/booking/booking-actions";
+import {
+  PaymentRequired,
+  PaymentSuccess,
+  PaymentCancelled,
+  DepositPaid,
+} from "@/components/payment/payment-status";
 
 const sizeLabels: Record<string, string> = {
   SMALL: "Small (Under 2\")",
@@ -78,7 +84,7 @@ type BookingDetail = {
   consentForm?: { id: string; signedAt: string } | null;
 };
 
-export default function BookingDetailPage() {
+function BookingDetailContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,12 +95,12 @@ export default function BookingDetailPage() {
   const [cancelling, setCancelling] = useState(false);
 
   const isArtist = session?.user?.role === "ARTIST";
+  const paymentParam = searchParams.get("payment");
 
   useEffect(() => {
-    const payment = searchParams.get("payment");
-    if (payment === "success") toast.success("Deposit paid successfully!");
-    if (payment === "cancelled") toast.info("Payment was cancelled");
-  }, [searchParams]);
+    if (paymentParam === "success") toast.success("Deposit paid successfully!");
+    if (paymentParam === "cancelled") toast.info("Payment was cancelled");
+  }, [paymentParam]);
 
   useEffect(() => {
     async function fetchBooking() {
@@ -123,7 +129,6 @@ export default function BookingDetailPage() {
         toast.success("Booking cancelled successfully");
         router.refresh();
         setCancelOpen(false);
-        // Refetch
         const res2 = await fetch(`/api/bookings/${params.id}`);
         if (res2.ok) setBooking(await res2.json());
       } else {
@@ -134,27 +139,6 @@ export default function BookingDetailPage() {
       toast.error("Something went wrong");
     } finally {
       setCancelling(false);
-    }
-  }
-
-  async function handlePayDeposit() {
-    try {
-      const res = await fetch("/api/stripe/create-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: params.id }),
-      });
-
-      if (res.ok) {
-        const { url } = await res.json();
-        if (url) {
-          window.location.href = url;
-          return;
-        }
-      }
-      toast.error("Failed to create payment session");
-    } catch {
-      toast.error("Something went wrong");
     }
   }
 
@@ -265,53 +249,37 @@ export default function BookingDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main content */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Payment required (client, awaiting deposit) */}
-          {!isArtist && booking.status === "AWAITING_DEPOSIT" && booking.depositAmount && (
-            <Card className="border-accent">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-medium">
-                  <CreditCard className="size-5" />
-                  Payment Required
-                </CardTitle>
-                <CardDescription>
-                  A deposit is required to confirm your appointment
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between">
-                <p className="text-3xl font-light">
-                  ${(booking.depositAmount / 100).toFixed(2)}
-                </p>
-                <Button onClick={handlePayDeposit} className="gap-2">
-                  <CreditCard className="size-4" />
-                  Pay Deposit
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Deposit paid */}
+          {/* Payment status cards */}
+          {!isArtist && paymentParam === "success" && <PaymentSuccess />}
+          {!isArtist &&
+            paymentParam === "cancelled" &&
+            booking.depositAmount && (
+              <PaymentCancelled
+                bookingId={booking.id}
+                depositAmount={booking.depositAmount}
+              />
+            )}
+          {!isArtist &&
+            !paymentParam &&
+            booking.status === "AWAITING_DEPOSIT" &&
+            booking.depositAmount && (
+              <PaymentRequired
+                bookingId={booking.id}
+                depositAmount={booking.depositAmount}
+                totalAmount={booking.totalAmount}
+              />
+            )}
           {booking.depositPaidAt && (
-            <Card className="border-[hsl(82_8%_48%)]/30">
-              <CardContent className="flex items-center gap-3 py-4">
-                <CheckCircle className="size-5 text-[hsl(82_8%_48%)]" />
-                <div>
-                  <p className="font-medium text-[hsl(82_8%_48%)]">
-                    Deposit Paid
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Paid on{" "}
-                    {format(new Date(booking.depositPaidAt), "MMMM d, yyyy")}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <DepositPaid paidAt={booking.depositPaidAt} />
           )}
 
           {/* Client info (artist view) */}
           {isArtist && booking.client && (
             <Card>
               <CardHeader>
-                <CardTitle className="font-medium">Client Information</CardTitle>
+                <CardTitle className="font-medium">
+                  Client Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -366,7 +334,9 @@ export default function BookingDetailPage() {
               <Separator />
 
               <div>
-                <p className="text-sm text-muted-foreground">Preferred Dates</p>
+                <p className="text-sm text-muted-foreground">
+                  Preferred Dates
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {preferredDates.map((date) => (
                     <Badge key={date} variant="secondary">
@@ -508,7 +478,9 @@ export default function BookingDetailPage() {
                     </div>
                     {booking.depositAmount && booking.depositPaidAt && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Remaining</span>
+                        <span className="text-muted-foreground">
+                          Remaining
+                        </span>
                         <span className="font-medium">
                           $
                           {(
@@ -541,13 +513,30 @@ export default function BookingDetailPage() {
               </CardHeader>
               <CardContent>
                 {booking.consentForm ? (
-                  <div className="flex items-center gap-2 text-sm text-[hsl(82_8%_48%)]">
-                    <CheckCircle className="size-4" />
-                    Signed on{" "}
-                    {format(
-                      new Date(booking.consentForm.signedAt),
-                      "MMMM d, yyyy"
-                    )}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-[hsl(82_8%_48%)]">
+                      <CheckCircle className="size-4" />
+                      Signed on{" "}
+                      {format(
+                        new Date(booking.consentForm.signedAt),
+                        "MMMM d, yyyy"
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      asChild
+                    >
+                      <a
+                        href={`/api/consent/${booking.consentForm.id}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="size-4" />
+                        Download PDF
+                      </a>
+                    </Button>
                   </div>
                 ) : !isArtist ? (
                   <div className="space-y-3">
@@ -587,5 +576,19 @@ export default function BookingDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BookingDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <BookingDetailContent />
+    </Suspense>
   );
 }

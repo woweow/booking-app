@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useNavBadges } from "@/hooks/use-nav-badges";
 
 type NavItem = {
   label: string;
@@ -47,10 +48,12 @@ function NavItems({
   items,
   pathname,
   onNavigate,
+  badgeCounts,
 }: {
   items: NavItem[];
   pathname: string;
   onNavigate?: () => void;
+  badgeCounts?: Record<string, number>;
 }) {
   return (
     <nav className="flex flex-col gap-1">
@@ -58,6 +61,7 @@ function NavItems({
         const isActive =
           pathname === item.href ||
           (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        const badgeCount = badgeCounts?.[item.href] ?? 0;
 
         return (
           <Link
@@ -73,6 +77,11 @@ function NavItems({
           >
             <item.icon className="size-5" />
             {item.label}
+            {badgeCount > 0 && (
+              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
+                {badgeCount}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -83,6 +92,14 @@ function NavItems({
 export function Sidebar({ role }: { role: "CLIENT" | "ARTIST" }) {
   const pathname = usePathname();
   const items = role === "ARTIST" ? artistNav : clientNav;
+  const { pendingBookings, unreadMessages } = useNavBadges(role);
+
+  const badgeCounts: Record<string, number> = {
+    "/messages": unreadMessages,
+  };
+  if (role === "ARTIST") {
+    badgeCounts["/bookings"] = pendingBookings;
+  }
 
   return (
     <aside className="hidden w-64 flex-col border-r border-border bg-background p-4 lg:flex">
@@ -92,7 +109,7 @@ export function Sidebar({ role }: { role: "CLIENT" | "ARTIST" }) {
         </Link>
       </div>
 
-      <NavItems items={items} pathname={pathname} />
+      <NavItems items={items} pathname={pathname} badgeCounts={badgeCounts} />
 
       <div className="mt-auto">
         <Separator className="my-4" />

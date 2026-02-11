@@ -16,11 +16,20 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { NavItems, clientNav, artistNav } from "./sidebar";
+import { useNavBadges } from "@/hooks/use-nav-badges";
 
 export function MobileNav({ role }: { role: "CLIENT" | "ARTIST" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const items = role === "ARTIST" ? artistNav : clientNav;
+  const { pendingBookings, unreadMessages } = useNavBadges(role);
+
+  const badgeCounts: Record<string, number> = {
+    "/messages": unreadMessages,
+  };
+  if (role === "ARTIST") {
+    badgeCounts["/bookings"] = pendingBookings;
+  }
 
   return (
     <div className="flex items-center gap-2 border-b border-border px-4 py-3 lg:hidden">
@@ -42,6 +51,7 @@ export function MobileNav({ role }: { role: "CLIENT" | "ARTIST" }) {
             items={items}
             pathname={pathname}
             onNavigate={() => setOpen(false)}
+            badgeCounts={badgeCounts}
           />
 
           <div className="mt-auto">

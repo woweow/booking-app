@@ -5,7 +5,13 @@ import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ImageIcon, MoreHorizontal } from "lucide-react";
 
 export type BookingThread = {
   bookingId: string;
@@ -29,6 +35,7 @@ type ConversationsListProps = {
   selectedBookingId?: string | null;
   currentUserId: string;
   onSelect: (bookingId: string) => void;
+  onMarkUnread?: (bookingId: string) => void;
 };
 
 export function ConversationsList({
@@ -36,6 +43,7 @@ export function ConversationsList({
   selectedBookingId,
   currentUserId,
   onSelect,
+  onMarkUnread,
 }: ConversationsListProps) {
   if (threads.length === 0) {
     return (
@@ -60,7 +68,7 @@ export function ConversationsList({
             key={thread.bookingId}
             onClick={() => onSelect(thread.bookingId)}
             className={cn(
-              "flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-secondary/50",
+              "group flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-secondary/50",
               isSelected && "bg-secondary"
             )}
           >
@@ -103,11 +111,30 @@ export function ConversationsList({
               </p>
             </div>
 
-            {thread.unreadCount > 0 && (
+            {thread.unreadCount > 0 ? (
               <Badge className="shrink-0 bg-destructive text-destructive-foreground">
                 {thread.unreadCount}
               </Badge>
-            )}
+            ) : onMarkUnread && thread.lastMessage ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                >
+                  <MoreHorizontal className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMarkUnread(thread.bookingId);
+                    }}
+                  >
+                    Mark as unread
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </button>
         );
       })}

@@ -76,6 +76,21 @@ function ClientMessages({ userId }: { userId: string }) {
     fetchThreads();
   }
 
+  async function handleMarkUnread(bookingId: string) {
+    try {
+      const res = await fetch(`/api/messages/${bookingId}/unread`, {
+        method: "PATCH",
+      });
+      if (res.ok) {
+        fetchThreads();
+      } else {
+        toast.error("Failed to mark as unread.");
+      }
+    } catch {
+      toast.error("Failed to mark as unread.");
+    }
+  }
+
   const selectedThread = threads.find(
     (t) => t.bookingId === selectedBookingId
   );
@@ -162,6 +177,7 @@ function ClientMessages({ userId }: { userId: string }) {
             selectedBookingId={selectedBookingId}
             currentUserId={userId}
             onSelect={selectThread}
+            onMarkUnread={handleMarkUnread}
           />
         </Card>
 
@@ -219,6 +235,7 @@ function ClientMessages({ userId }: { userId: string }) {
               selectedBookingId={selectedBookingId}
               currentUserId={userId}
               onSelect={selectThread}
+              onMarkUnread={handleMarkUnread}
             />
           </Card>
         ) : (
@@ -318,6 +335,21 @@ function ArtistMessages({ userId }: { userId: string }) {
     fetchThreads();
   }
 
+  async function handleMarkUnread(bookingId: string) {
+    try {
+      const res = await fetch(`/api/messages/${bookingId}/unread`, {
+        method: "PATCH",
+      });
+      if (res.ok) {
+        fetchThreads();
+      } else {
+        toast.error("Failed to mark as unread.");
+      }
+    } catch {
+      toast.error("Failed to mark as unread.");
+    }
+  }
+
   const selectedThread = threads.find(
     (t) => t.bookingId === selectedBookingId
   );
@@ -348,6 +380,7 @@ function ArtistMessages({ userId }: { userId: string }) {
             selectedBookingId={selectedBookingId}
             currentUserId={userId}
             onSelect={selectThread}
+            onMarkUnread={handleMarkUnread}
           />
         </Card>
 
@@ -415,6 +448,7 @@ function ArtistMessages({ userId }: { userId: string }) {
                 selectedBookingId={selectedBookingId}
                 currentUserId={userId}
                 onSelect={selectThread}
+                onMarkUnread={handleMarkUnread}
               />
             )}
           </Card>

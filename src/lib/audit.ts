@@ -29,6 +29,8 @@ export const AuditAction = {
   FLASH_PIECE_CREATED: "FLASH_PIECE_CREATED",
   FLASH_PIECE_UPDATED: "FLASH_PIECE_UPDATED",
   FLASH_PIECE_DELETED: "FLASH_PIECE_DELETED",
+  BOOK_PUBLISHED: "BOOK_PUBLISHED",
+  BOOK_UNPUBLISHED: "BOOK_UNPUBLISHED",
 } as const;
 
 export const AuditResult = {
@@ -43,6 +45,7 @@ export const ResourceType = {
   CONSENT_FORM: "ConsentForm",
   PAYMENT: "Payment",
   FLASH_PIECE: "FlashPiece",
+  BOOK: "Book",
 } as const;
 
 type AuditLogParams = {

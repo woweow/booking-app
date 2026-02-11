@@ -252,7 +252,7 @@ model Book {
   name        String
   type        BookType
   description String?
-  isActive    Boolean   @default(true)
+  isActive    Boolean   @default(false)
   startDate   DateTime? @db.Date
   endDate     DateTime? @db.Date
 

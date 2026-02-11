@@ -10,6 +10,7 @@ import { Plus, BookOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -140,27 +141,6 @@ export default function BooksPage() {
     }
   }
 
-  async function toggleActive(bookId: string, isActive: boolean) {
-    try {
-      const res = await fetch(`/api/books/${bookId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !isActive }),
-      });
-
-      if (res.ok) {
-        setBooks((prev) =>
-          prev.map((b) =>
-            b.id === bookId ? { ...b, isActive: !isActive } : b
-          )
-        );
-        toast.success(isActive ? "Book deactivated" : "Book activated");
-      }
-    } catch {
-      toast.error("Something went wrong");
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -200,7 +180,7 @@ export default function BooksPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {books.map((book) => (
             <Link key={book.id} href={`/books/${book.id}`}>
-              <Card className="transition-shadow hover:shadow-md">
+              <Card className={cn("transition-shadow hover:shadow-md", !book.isActive && "opacity-60")}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium">{book.name}</p>
@@ -208,9 +188,15 @@ export default function BooksPage() {
                       <Badge variant={book.type === "FLASH" ? "default" : "secondary"}>
                         {book.type}
                       </Badge>
-                      <Badge variant={book.isActive ? "outline" : "destructive"}>
-                        {book.isActive ? "Active" : "Inactive"}
-                      </Badge>
+                      {book.isActive ? (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                          LIVE
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+                          DRAFT
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

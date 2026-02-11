@@ -19,7 +19,6 @@ const bookBaseSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.enum(["FLASH", "CUSTOM"]),
   description: z.string().optional(),
-  isActive: z.boolean().default(true),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
   mondayStart: optionalTime,

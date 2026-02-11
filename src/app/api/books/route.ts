@@ -12,7 +12,6 @@ export async function GET() {
     }
 
     const books = await prisma.book.findMany({
-      where: { isActive: true },
       include: {
         _count: { select: { bookings: true, flashPieces: true } },
       },
@@ -48,6 +47,7 @@ export async function POST(request: NextRequest) {
     const book = await prisma.book.create({
       data: {
         ...rest,
+        isActive: false,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
       },

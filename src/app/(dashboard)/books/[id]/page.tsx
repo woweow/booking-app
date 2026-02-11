@@ -6,6 +6,8 @@ import Link from "next/link";
 import {
   ArrowLeft,
   CalendarDays,
+  CheckCircle2,
+  Circle,
   Link as LinkIcon,
   Loader2,
   Pencil,
@@ -111,6 +113,8 @@ export default function BookDetailPage() {
   const [flashPieces, setFlashPieces] = useState<FlashPieceWithSizes[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingPiece, setEditingPiece] = useState<FlashPieceWithSizes | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [unpublishOpen, setUnpublishOpen] = useState(false);
 
   useEffect(() => {
     async function fetchBook() {
@@ -291,6 +295,52 @@ export default function BookDetailPage() {
     }
   }
 
+  async function handlePublish() {
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/books/${params.id}/publish`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setBook((prev) => (prev ? { ...prev, isActive: true } : prev));
+        toast.success("Book is now live!");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to publish");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function handleUnpublish() {
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/books/${params.id}/publish`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setBook((prev) => (prev ? { ...prev, isActive: false } : prev));
+        setUnpublishOpen(false);
+        toast.success("Book unpublished");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to unpublish");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  const hasOperatingHours = Object.values(hours).some((h) => h !== null && h !== undefined);
+  const hasStartDate = !!book?.startDate;
+  const hasFlashPieces = flashPieces.length > 0 && flashPieces.some((p) => p.sizes.length > 0);
+  const hasDeposit = !!book?.depositAmountCents;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -325,17 +375,46 @@ export default function BookDetailPage() {
           <Badge variant={book.type === "FLASH" ? "default" : "secondary"}>
             {book.type}
           </Badge>
-          <Badge variant={book.isActive ? "outline" : "destructive"}>
-            {book.isActive ? "Active" : "Inactive"}
-          </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="size-4" />
-          </Button>
+          {book.isActive ? (
+            <Badge className="bg-green-100 text-green-800 border-green-200">
+              LIVE
+            </Badge>
+          ) : (
+            <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+              DRAFT
+            </Badge>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            {book.isActive ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUnpublishOpen(true)}
+                disabled={publishing}
+              >
+                {publishing && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Unpublish
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={handlePublish}
+                disabled={publishing}
+              >
+                {publishing && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Go Live
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
         </div>
         {book.description && (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -353,6 +432,61 @@ export default function BookDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {!book.isActive && (
+          <Card className="lg:col-span-2 border-amber-200 bg-amber-50/50">
+            <CardHeader>
+              <CardTitle className="font-medium">Publish Checklist</CardTitle>
+              <CardDescription>
+                Complete these items before going live
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2 text-sm">
+                {hasOperatingHours ? (
+                  <CheckCircle2 className="size-4 text-green-600" />
+                ) : (
+                  <Circle className="size-4 text-muted-foreground" />
+                )}
+                <span className={hasOperatingHours ? "" : "text-muted-foreground"}>
+                  Operating hours configured
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                {hasStartDate ? (
+                  <CheckCircle2 className="size-4 text-green-600" />
+                ) : (
+                  <Circle className="size-4 text-muted-foreground" />
+                )}
+                <span className={hasStartDate ? "" : "text-muted-foreground"}>
+                  Start date set
+                </span>
+              </div>
+              {book.type === "FLASH" && (
+                <div className="flex items-center gap-2 text-sm">
+                  {hasFlashPieces ? (
+                    <CheckCircle2 className="size-4 text-green-600" />
+                  ) : (
+                    <Circle className="size-4 text-muted-foreground" />
+                  )}
+                  <span className={hasFlashPieces ? "" : "text-muted-foreground"}>
+                    Flash pieces added
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-sm">
+                {hasDeposit ? (
+                  <CheckCircle2 className="size-4 text-green-600" />
+                ) : (
+                  <Circle className="size-4 text-muted-foreground" />
+                )}
+                <span className={hasDeposit ? "" : "text-muted-foreground"}>
+                  Deposit amount set
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="font-medium">Book Info</CardTitle>
@@ -366,7 +500,7 @@ export default function BookDetailPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status</span>
               <span className="font-medium">
-                {book.isActive ? "Active" : "Inactive"}
+                {book.isActive ? "Live" : "Draft"}
               </span>
             </div>
           </CardContent>
@@ -675,6 +809,35 @@ export default function BookDetailPage() {
             >
               {deleting && <Loader2 className="mr-2 size-4 animate-spin" />}
               {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unpublishOpen} onOpenChange={setUnpublishOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unpublish Book</DialogTitle>
+            <DialogDescription>
+              This will take &ldquo;{book.name}&rdquo; offline. Clients will no
+              longer be able to book from it. Existing bookings are not affected.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setUnpublishOpen(false)}
+              disabled={publishing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleUnpublish}
+              disabled={publishing}
+            >
+              {publishing && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {publishing ? "Unpublishing..." : "Unpublish"}
             </Button>
           </DialogFooter>
         </DialogContent>

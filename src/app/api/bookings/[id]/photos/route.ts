@@ -7,6 +7,14 @@ import { uploadFile, validateImageFile } from "@/lib/blob";
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error("BLOB_READ_WRITE_TOKEN is not configured");
+    return NextResponse.json(
+      { error: "File uploads are not configured" },
+      { status: 503 }
+    );
+  }
+
   try {
     const session = await auth();
     if (!session?.user) {

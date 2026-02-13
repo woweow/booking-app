@@ -25,11 +25,15 @@ export async function sendEmail(
 
   try {
     console.log(`[Email] Sending to=${to} subject="${subject}" from=${FROM}`);
-    const result = await resend.emails.send({ from: FROM, to, subject, html });
-    console.log(`[Email] Sent successfully, id=${(result as { data?: { id?: string } }).data?.id}`);
+    const { data, error } = await resend.emails.send({ from: FROM, to, subject, html });
+    if (error) {
+      console.error("[Email] Resend returned error:", JSON.stringify(error));
+      return false;
+    }
+    console.log(`[Email] Sent successfully, id=${data?.id}`);
     return true;
   } catch (error) {
-    console.error("[Email] Failed to send:", error);
+    console.error("[Email] Exception sending email:", error);
     return false;
   }
 }

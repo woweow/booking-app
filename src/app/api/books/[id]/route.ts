@@ -3,6 +3,10 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { updateBookSchema } from "@/lib/validations/book";
+import {
+  syncBookOpenDaysToGoogleCalendar,
+  deleteBookOpenDaysFromGoogleCalendar,
+} from "@/lib/google-calendar";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -109,10 +113,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       Object.assign(data, flat);
     }
 
+    // Check if schedule-relevant fields are being changed
+    const scheduleFieldsChanged =
+      availableHours !== undefined ||
+      startDate !== undefined ||
+      endDate !== undefined;
+
     const book = await prisma.book.update({
       where: { id },
       data,
     });
+
+    // If the book is published and schedule fields changed, reconcile Google Calendar
+    if (book.isActive && scheduleFieldsChanged) {
+      (async () => {
+        await deleteBookOpenDaysFromGoogleCalendar(id);
+        await syncBookOpenDaysToGoogleCalendar(book);
+      })().catch((err) =>
+        console.error("Failed to reconcile book calendar events:", err)
+      );
+    }
 
     const builtHours = buildAvailableHours(book as unknown as Record<string, unknown>);
 

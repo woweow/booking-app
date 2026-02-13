@@ -286,6 +286,190 @@ export async function deleteTimeBlockFromGoogleCalendar(googleEventId: string): 
   await deleteBookingFromGoogleCalendar(googleEventId);
 }
 
+// Day-of-week mapping: JS Date.getDay() (0=Sun) to schema field names
+const DAY_NAMES = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+
+type BookWithHours = {
+  id: string;
+  name: string;
+  startDate: Date | null;
+  endDate: Date | null;
+  mondayStart: string | null;
+  mondayEnd: string | null;
+  tuesdayStart: string | null;
+  tuesdayEnd: string | null;
+  wednesdayStart: string | null;
+  wednesdayEnd: string | null;
+  thursdayStart: string | null;
+  thursdayEnd: string | null;
+  fridayStart: string | null;
+  fridayEnd: string | null;
+  saturdayStart: string | null;
+  saturdayEnd: string | null;
+  sundayStart: string | null;
+  sundayEnd: string | null;
+};
+
+function getDayHours(book: BookWithHours, dayIndex: number): { start: string; end: string } | null {
+  const day = DAY_NAMES[dayIndex];
+  const start = book[`${day}Start` as keyof BookWithHours] as string | null;
+  const end = book[`${day}End` as keyof BookWithHours] as string | null;
+  return start && end ? { start, end } : null;
+}
+
+// Sync "Open" events to Google Calendar for every available day in a book's range
+export async function syncBookOpenDaysToGoogleCalendar(book: BookWithHours): Promise<void> {
+  try {
+    const artistId = await getArtistUserId();
+    if (!artistId) return;
+
+    const accessToken = await getAccessToken(artistId);
+    const calendarId = await getCalendarId(artistId);
+
+    if (!book.startDate || !book.endDate) return;
+
+    // Get all UNAVAILABLE exception dates in the range
+    const exceptions = await prisma.availabilityException.findMany({
+      where: {
+        type: "UNAVAILABLE",
+        date: { gte: book.startDate, lte: book.endDate },
+      },
+      select: { date: true },
+    });
+    const unavailableDates = new Set(
+      exceptions.map((e) => e.date.toISOString().split("T")[0])
+    );
+
+    // Enumerate every date in the range
+    const events: { date: Date; start: string; end: string }[] = [];
+    const current = new Date(book.startDate);
+    const endDate = new Date(book.endDate);
+
+    while (current <= endDate) {
+      const dayIndex = current.getDay();
+      const hours = getDayHours(book, dayIndex);
+      const dateStr = current.toISOString().split("T")[0];
+
+      if (hours && !unavailableDates.has(dateStr)) {
+        events.push({ date: new Date(current), start: hours.start, end: hours.end });
+      }
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    // Process in batches of 8
+    const BATCH_SIZE = 8;
+    for (let i = 0; i < events.length; i += BATCH_SIZE) {
+      const batch = events.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (evt) => {
+          const dateStr = evt.date.toISOString().split("T")[0];
+          const startDateTime = `${dateStr}T${evt.start}:00`;
+          const endDateTime = `${dateStr}T${evt.end}:00`;
+
+          const event = {
+            summary: `Open - ${book.name}`,
+            description: `Available for bookings\nBook: ${book.name}`,
+            start: { dateTime: startDateTime, timeZone: TIMEZONE },
+            end: { dateTime: endDateTime, timeZone: TIMEZONE },
+          };
+
+          const response = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(event),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            await prisma.bookCalendarEvent.upsert({
+              where: { bookId_date: { bookId: book.id, date: evt.date } },
+              create: {
+                bookId: book.id,
+                date: evt.date,
+                googleEventId: data.id,
+              },
+              update: {
+                googleEventId: data.id,
+              },
+            });
+          }
+        })
+      );
+
+      // Brief delay between batches to respect rate limits
+      if (i + BATCH_SIZE < events.length) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
+  } catch (error) {
+    console.error("Google Calendar book sync error:", error);
+  }
+}
+
+// Delete all "Open" events from Google Calendar for a book
+export async function deleteBookOpenDaysFromGoogleCalendar(bookId: string): Promise<void> {
+  try {
+    const artistId = await getArtistUserId();
+    if (!artistId) return;
+
+    const accessToken = await getAccessToken(artistId);
+    const calendarId = await getCalendarId(artistId);
+
+    const calendarEvents = await prisma.bookCalendarEvent.findMany({
+      where: { bookId },
+    });
+
+    if (calendarEvents.length === 0) return;
+
+    // Delete from Google Calendar in batches of 8
+    const BATCH_SIZE = 8;
+    for (let i = 0; i < calendarEvents.length; i += BATCH_SIZE) {
+      const batch = calendarEvents.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (evt) => {
+          try {
+            await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(evt.googleEventId)}`,
+              {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${accessToken}` },
+              }
+            );
+          } catch {
+            // Individual event deletion failures are non-critical
+          }
+        })
+      );
+
+      if (i + BATCH_SIZE < calendarEvents.length) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
+
+    // Remove all records from DB
+    await prisma.bookCalendarEvent.deleteMany({ where: { bookId } });
+  } catch (error) {
+    console.error("Google Calendar book delete error:", error);
+  }
+}
+
 // Store encrypted tokens for a new Google connection
 export async function storeGoogleConnection(
   userId: string,

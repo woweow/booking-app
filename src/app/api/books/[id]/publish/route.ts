@@ -8,6 +8,10 @@ import {
   AuditResult,
   ResourceType,
 } from "@/lib/audit";
+import {
+  syncBookOpenDaysToGoogleCalendar,
+  deleteBookOpenDaysFromGoogleCalendar,
+} from "@/lib/google-calendar";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -99,6 +103,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       request,
     });
 
+    // Sync open availability days to Google Calendar (non-blocking)
+    syncBookOpenDaysToGoogleCalendar(book).catch((err) =>
+      console.error("Failed to sync book open days to Google Calendar:", err)
+    );
+
     return NextResponse.json({ book: updated });
   } catch (error) {
     console.error("Publish book error:", error);
@@ -138,6 +147,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       result: AuditResult.SUCCESS,
       request,
     });
+
+    // Remove open availability events from Google Calendar (non-blocking)
+    deleteBookOpenDaysFromGoogleCalendar(id).catch((err) =>
+      console.error("Failed to delete book open days from Google Calendar:", err)
+    );
 
     return NextResponse.json({ book: updated });
   } catch (error) {

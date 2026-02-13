@@ -68,6 +68,17 @@ enum MessageType {
   PAYMENT_REQUEST
 }
 
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -139,7 +150,7 @@ model Booking {
   // Relationships
   photos          BookingPhoto[]
   consentForm     ConsentForm?
-  notifications   ScheduledNotification[]
+  notifications   BookingNotification[]
   timeBlocks      TimeBlock[]
   bookingLink     BookingLink?
   messages        Message[]
@@ -222,17 +233,20 @@ model ConsentForm {
   createdAt DateTime @default(now())
 }
 
-model ScheduledNotification {
-  id           String    @id @default(cuid())
+model BookingNotification {
+  id           String              @id @default(cuid())
   bookingId    String
-  booking      Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  type         String    // REMINDER_1WEEK, REMINDER_1DAY, REMINDER_2HOURS
+  booking      Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type         String              // BOOKING_APPROVED, REMINDER_1WEEK, etc.
+  channel      NotificationChannel
+  status       NotificationStatus  @default(PENDING)
   scheduledFor DateTime
   sentAt       DateTime?
-  channel      String    // EMAIL, SMS, BOTH
-  createdAt    DateTime  @default(now())
+  failedAt     DateTime?
+  createdAt    DateTime            @default(now())
 
-  @@index([scheduledFor, sentAt])
+  @@index([scheduledFor, status])
+  @@index([bookingId])
 }
 
 model PasswordResetToken {
@@ -305,8 +319,9 @@ model Book {
 
   depositAmountCents Int? // default deposit for bookings in this book
 
-  bookings    Booking[]
-  flashPieces FlashPiece[]
+  bookings       Booking[]
+  flashPieces    FlashPiece[]
+  calendarEvents BookCalendarEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -377,6 +392,19 @@ model AvailabilityException {
   customEndTime   String?
   reason          String?
   createdAt       DateTime      @default(now())
+}
+
+model BookCalendarEvent {
+  id            String   @id @default(cuid())
+  bookId        String
+  book          Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  date          DateTime @db.Date
+  googleEventId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, date])
+  @@index([bookId])
 }
 
 model GoogleConnection {

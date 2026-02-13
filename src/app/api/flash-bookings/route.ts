@@ -157,6 +157,7 @@ export async function POST(request: NextRequest) {
             duration: durationMinutes,
             depositAmount: book.depositAmountCents,
             totalAmount: pieceSize.priceAmountCents,
+            chatEnabled: true,
           },
         });
 

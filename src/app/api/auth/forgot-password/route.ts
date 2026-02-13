@@ -69,10 +69,10 @@ export async function POST(request: NextRequest) {
     const resetLink = `${baseUrl}/reset-password?token=${plainToken}`;
     const TOKEN_EXPIRATION_MINUTES = 60;
 
+    console.log(`[ForgotPassword] User found for ${email}, generating reset email`);
     const emailData = passwordResetEmail(user.name, resetLink, TOKEN_EXPIRATION_MINUTES);
-    sendEmail(email, emailData.subject, emailData.html).catch((err) =>
-      console.error("Failed to send password reset email:", err)
-    );
+    const sent = await sendEmail(email, emailData.subject, emailData.html);
+    console.log(`[ForgotPassword] Email send result: ${sent}`);
 
     return NextResponse.json({ message: successMessage });
   } catch (error) {

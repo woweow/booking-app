@@ -24,10 +24,12 @@ export async function sendEmail(
   }
 
   try {
-    await resend.emails.send({ from: FROM, to, subject, html });
+    console.log(`[Email] Sending to=${to} subject="${subject}" from=${FROM}`);
+    const result = await resend.emails.send({ from: FROM, to, subject, html });
+    console.log(`[Email] Sent successfully, id=${(result as { data?: { id?: string } }).data?.id}`);
     return true;
   } catch (error) {
-    console.error("Failed to send email:", error);
+    console.error("[Email] Failed to send:", error);
     return false;
   }
 }

@@ -12,7 +12,7 @@ export function SignaturePad({
   onChange: (dataUrl: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const isDrawing = useRef(false);
   const [hasSignature, setHasSignature] = useState(false);
   const lastPoint = useRef<Point | null>(null);
 
@@ -63,25 +63,31 @@ export function SignaturePad({
     }
   }, [onChange]);
 
+  // One-time canvas initialization
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }, []);
+
+  // Drawing event listeners
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     function handleStart(e: MouseEvent | TouchEvent) {
       e.preventDefault();
-      setIsDrawing(true);
+      isDrawing.current = true;
       const point = getPoint(e);
       lastPoint.current = point;
     }
 
     function handleMove(e: MouseEvent | TouchEvent) {
       e.preventDefault();
-      if (!isDrawing || !lastPoint.current) return;
+      if (!isDrawing.current || !lastPoint.current) return;
       const point = getPoint(e);
       if (!point) return;
       drawLine(lastPoint.current, point);
@@ -91,8 +97,8 @@ export function SignaturePad({
 
     function handleEnd(e: MouseEvent | TouchEvent) {
       e.preventDefault();
-      if (isDrawing) {
-        setIsDrawing(false);
+      if (isDrawing.current) {
+        isDrawing.current = false;
         lastPoint.current = null;
         emitChange();
       }
@@ -115,7 +121,7 @@ export function SignaturePad({
       canvas.removeEventListener("touchmove", handleMove);
       canvas.removeEventListener("touchend", handleEnd);
     };
-  }, [isDrawing, getPoint, drawLine, emitChange]);
+  }, [getPoint, drawLine, emitChange]);
 
   function handleClear() {
     const canvas = canvasRef.current;

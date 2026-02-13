@@ -199,7 +199,6 @@ model ConsentForm {
   // Personal information
   fullLegalName    String
   dateOfBirth      DateTime
-  address          String
   emergencyContact String
   emergencyPhone   String
 

@@ -22,7 +22,6 @@ type ConsentFormPDFProps = {
     bookingId: string;
     fullLegalName: string;
     dateOfBirth: Date;
-    address: string;
     emergencyContact: string;
     emergencyPhone: string;
     skinConditions: string | null;
@@ -71,10 +70,6 @@ export function ConsentFormPDF({ consentForm }: ConsentFormPDFProps) {
           <View style={styles.row}>
             <Text style={styles.label}>Date of Birth:</Text>
             <Text style={styles.value}>{formatDate(consentForm.dateOfBirth)}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Address:</Text>
-            <Text style={styles.value}>{consentForm.address}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Email:</Text>

@@ -68,7 +68,6 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         fullLegalName: data.fullLegalName,
         dateOfBirth: new Date(data.dateOfBirth),
-        address: data.address,
         emergencyContact: data.emergencyContact,
         emergencyPhone: data.emergencyPhone,
         ...encryptedMedical,

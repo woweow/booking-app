@@ -35,7 +35,6 @@ const consentSchema = z.object({
   bookingId: z.string().min(1),
   fullLegalName: z.string().min(1, "Full legal name is required"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
-  address: z.string().min(1, "Address is required").max(200, "Address too long"),
   emergencyContact: z.string().min(1, "Emergency contact name is required"),
   emergencyPhone: z.string().min(1, "Emergency contact phone is required").max(20),
   skinConditions: z.string().max(500).optional().or(z.literal("")),
@@ -73,7 +72,6 @@ export function ConsentFormComponent({
       bookingId,
       fullLegalName: userName || "",
       dateOfBirth: "",
-      address: "",
       emergencyContact: "",
       emergencyPhone: "",
       skinConditions: "",
@@ -175,26 +173,6 @@ export function ConsentFormComponent({
                   </FormLabel>
                   <FormControl>
                     <Input type="date" max={today} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Address <span className="text-destructive">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Your full address"
-                      rows={2}
-                      {...field}
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

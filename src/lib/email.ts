@@ -10,7 +10,7 @@ function getResend(): Resend | null {
   return resendInstance;
 }
 
-const FROM = "Studio Saturn <bookings@studiosaturn.com>";
+const FROM = "Studio Saturn <onboarding@resend.dev>";
 
 export async function sendEmail(
   to: string,

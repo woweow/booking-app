@@ -6,6 +6,7 @@ import { approveBookingSchema } from "@/lib/validations/booking";
 import { createAuditLog, AuditAction, AuditResult, ResourceType } from "@/lib/audit";
 import { sendEmail, bookingApprovedEmail } from "@/lib/email";
 import { sendSMS } from "@/lib/sms";
+import { trackNotification } from "@/lib/notifications";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -88,20 +89,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       request,
     });
 
-    // Send "pick your time" email (non-blocking)
+    // Track approval notifications (non-blocking)
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
     const bookingLink = `${baseUrl}/bookings/${id}`;
-
     const emailData = bookingApprovedEmail(updated.client.name, bookingLink);
-    sendEmail(updated.client.email, emailData.subject, emailData.html).catch((err) =>
-      console.error("Failed to send approval email:", err)
-    );
+
+    trackNotification({
+      bookingId: id,
+      type: "BOOKING_APPROVED",
+      channel: "EMAIL",
+      sendFn: () => sendEmail(updated.client.email, emailData.subject, emailData.html),
+    }).catch((err) => console.error("Failed to track approval email:", err));
 
     if (updated.client.phone) {
       const smsBody = `Hi ${updated.client.name}! Your booking at Studio Saturn has been approved. Choose your appointment time: ${bookingLink}`;
-      sendSMS(updated.client.phone, smsBody).catch((err) =>
-        console.error("Failed to send approval SMS:", err)
-      );
+      trackNotification({
+        bookingId: id,
+        type: "BOOKING_APPROVED",
+        channel: "SMS",
+        sendFn: () => sendSMS(updated.client.phone!, smsBody),
+      }).catch((err) => console.error("Failed to track approval SMS:", err));
     }
 
     return NextResponse.json({ booking: updated });

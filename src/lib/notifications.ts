@@ -1,55 +1,103 @@
 import { prisma } from "@/lib/db";
+import { NotificationChannel, NotificationStatus } from "@prisma/client";
 import { sendEmail, appointmentReminderEmail, aftercareFollowUpEmail, touchUpOfferEmail } from "@/lib/email";
 import { sendSMS, appointmentReminderSMS } from "@/lib/sms";
 
-// Schedule all notifications for a booking
+// Wrap a send operation with DB tracking
+export async function trackNotification(opts: {
+  bookingId: string;
+  type: string;
+  channel: "EMAIL" | "SMS";
+  sendFn: () => Promise<boolean>;
+  scheduledFor?: Date;
+}): Promise<boolean> {
+  const record = await prisma.bookingNotification.create({
+    data: {
+      bookingId: opts.bookingId,
+      type: opts.type,
+      channel: opts.channel as NotificationChannel,
+      status: NotificationStatus.PENDING,
+      scheduledFor: opts.scheduledFor ?? new Date(),
+    },
+  });
+
+  try {
+    const success = await opts.sendFn();
+    if (success) {
+      await prisma.bookingNotification.update({
+        where: { id: record.id },
+        data: { status: NotificationStatus.SENT, sentAt: new Date() },
+      });
+    } else {
+      await prisma.bookingNotification.update({
+        where: { id: record.id },
+        data: { status: NotificationStatus.FAILED, failedAt: new Date() },
+      });
+    }
+    return success;
+  } catch (error) {
+    await prisma.bookingNotification.update({
+      where: { id: record.id },
+      data: { status: NotificationStatus.FAILED, failedAt: new Date() },
+    }).catch(() => {});
+    throw error;
+  }
+}
+
+// Schedule all notifications for a booking — creates separate records per channel
 export async function scheduleBookingNotifications(
   bookingId: string,
   appointmentDate: Date
 ): Promise<void> {
   const apptTime = appointmentDate.getTime();
 
-  const notifications = [
+  // Define schedule: each entry lists which channels get a record
+  const schedule: { type: string; scheduledFor: Date; channels: NotificationChannel[] }[] = [
     {
       type: "REMINDER_1WEEK",
       scheduledFor: setTime(new Date(apptTime - 7 * 24 * 60 * 60 * 1000), 9, 0),
-      channel: "EMAIL",
+      channels: [NotificationChannel.EMAIL],
     },
     {
       type: "REMINDER_1DAY",
       scheduledFor: setTime(new Date(apptTime - 24 * 60 * 60 * 1000), 9, 0),
-      channel: "BOTH",
+      channels: [NotificationChannel.EMAIL, NotificationChannel.SMS],
     },
     {
       type: "REMINDER_2HOURS",
       scheduledFor: new Date(apptTime - 2 * 60 * 60 * 1000),
-      channel: "SMS",
+      channels: [NotificationChannel.SMS],
     },
     {
       type: "AFTERCARE_6WEEKS",
       scheduledFor: setTime(new Date(apptTime + 6 * 7 * 24 * 60 * 60 * 1000), 10, 0),
-      channel: "EMAIL",
+      channels: [NotificationChannel.EMAIL],
     },
     {
       type: "TOUCHUP_6MONTHS",
       scheduledFor: setTime(new Date(apptTime + 6 * 30 * 24 * 60 * 60 * 1000), 10, 0),
-      channel: "EMAIL",
+      channels: [NotificationChannel.EMAIL],
     },
   ];
 
-  // Filter out notifications scheduled in the past
   const now = new Date();
-  const futureNotifications = notifications.filter((n) => n.scheduledFor > now);
+  const records: { bookingId: string; type: string; scheduledFor: Date; channel: NotificationChannel; status: NotificationStatus }[] = [];
 
-  if (futureNotifications.length > 0) {
-    await prisma.scheduledNotification.createMany({
-      data: futureNotifications.map((n) => ({
+  for (const entry of schedule) {
+    if (entry.scheduledFor <= now) continue;
+    for (const channel of entry.channels) {
+      records.push({
         bookingId,
-        type: n.type,
-        scheduledFor: n.scheduledFor,
-        channel: n.channel,
-      })),
-    });
+        type: entry.type,
+        scheduledFor: entry.scheduledFor,
+        channel,
+        status: NotificationStatus.PENDING,
+      });
+    }
+  }
+
+  if (records.length > 0) {
+    await prisma.bookingNotification.createMany({ data: records });
   }
 }
 
@@ -61,8 +109,8 @@ function setTime(date: Date, hours: number, minutes: number): Date {
 
 // Cancel unsent notifications for a booking
 export async function cancelBookingNotifications(bookingId: string): Promise<void> {
-  await prisma.scheduledNotification.deleteMany({
-    where: { bookingId, sentAt: null },
+  await prisma.bookingNotification.deleteMany({
+    where: { bookingId, status: NotificationStatus.PENDING },
   });
 }
 
@@ -76,10 +124,10 @@ export async function processScheduledNotifications(): Promise<{
   let sent = 0;
   let failed = 0;
 
-  const dueNotifications = await prisma.scheduledNotification.findMany({
+  const dueNotifications = await prisma.bookingNotification.findMany({
     where: {
       scheduledFor: { lte: now },
-      sentAt: null,
+      status: NotificationStatus.PENDING,
     },
     include: {
       booking: {
@@ -104,57 +152,55 @@ export async function processScheduledNotifications(): Promise<{
           })
         : "TBD";
 
-      const shouldEmail = notification.channel === "EMAIL" || notification.channel === "BOTH";
-      const shouldSMS = notification.channel === "SMS" || notification.channel === "BOTH";
+      const isEmail = notification.channel === NotificationChannel.EMAIL;
+      const isSMS = notification.channel === NotificationChannel.SMS;
+      let success = false;
 
-      let emailSent = false;
-      let smsSent = false;
-
-      // Send based on notification type
       if (notification.type === "REMINDER_1WEEK" || notification.type === "REMINDER_1DAY") {
-        if (shouldEmail) {
+        if (isEmail) {
           const email = appointmentReminderEmail(client.name, apptDate, booking.placement || "N/A");
-          emailSent = await sendEmail(client.email, email.subject, email.html);
+          success = await sendEmail(client.email, email.subject, email.html);
         }
-        if (shouldSMS && client.phone) {
+        if (isSMS && client.phone) {
           const hoursUntil = notification.type === "REMINDER_1DAY" ? 24 : 168;
           const smsBody = appointmentReminderSMS(client.name, hoursUntil, apptDate);
-          smsSent = await sendSMS(client.phone, smsBody);
+          success = await sendSMS(client.phone, smsBody);
         }
       } else if (notification.type === "REMINDER_2HOURS") {
-        if (shouldSMS && client.phone) {
+        if (isSMS && client.phone) {
           const smsBody = appointmentReminderSMS(client.name, 2, apptDate);
-          smsSent = await sendSMS(client.phone, smsBody);
+          success = await sendSMS(client.phone, smsBody);
         }
       } else if (notification.type === "AFTERCARE_6WEEKS") {
-        if (shouldEmail) {
+        if (isEmail) {
           const email = aftercareFollowUpEmail(client.name);
-          emailSent = await sendEmail(client.email, email.subject, email.html);
+          success = await sendEmail(client.email, email.subject, email.html);
         }
       } else if (notification.type === "TOUCHUP_6MONTHS") {
-        if (shouldEmail) {
+        if (isEmail) {
           const email = touchUpOfferEmail(client.name);
-          emailSent = await sendEmail(client.email, email.subject, email.html);
+          success = await sendEmail(client.email, email.subject, email.html);
         }
       }
 
-      // Mark as sent regardless of delivery success (best effort)
-      await prisma.scheduledNotification.update({
-        where: { id: notification.id },
-        data: { sentAt: new Date() },
-      });
-
-      if (emailSent || smsSent || (!shouldEmail && !shouldSMS)) {
+      if (success) {
+        await prisma.bookingNotification.update({
+          where: { id: notification.id },
+          data: { status: NotificationStatus.SENT, sentAt: new Date() },
+        });
         sent++;
       } else {
+        await prisma.bookingNotification.update({
+          where: { id: notification.id },
+          data: { status: NotificationStatus.FAILED, failedAt: new Date() },
+        });
         failed++;
       }
     } catch (error) {
       console.error(`Failed to process notification ${notification.id}:`, error);
-      // Still mark as sent to prevent infinite retry
-      await prisma.scheduledNotification.update({
+      await prisma.bookingNotification.update({
         where: { id: notification.id },
-        data: { sentAt: new Date() },
+        data: { status: NotificationStatus.FAILED, failedAt: new Date() },
       }).catch(() => {});
       failed++;
     }

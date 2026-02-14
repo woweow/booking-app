@@ -6,6 +6,7 @@ import { createPaymentRequestSchema } from "@/lib/validations/payment-request";
 import { createAuditLog, AuditAction, AuditResult, ResourceType } from "@/lib/audit";
 import { checkRateLimit, paymentRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { sendEmail, paymentRequestEmail } from "@/lib/email";
+import { trackNotification } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
       return pr;
     });
 
-    // Fire-and-forget email
+    // Track payment request email (non-blocking)
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
     const bookingLink = `${baseUrl}/bookings/${bookingId}`;
     const emailData = paymentRequestEmail(
@@ -94,9 +95,12 @@ export async function POST(request: NextRequest) {
       note || null,
       bookingLink
     );
-    sendEmail(booking.client.email, emailData.subject, emailData.html).catch((err) =>
-      console.error("Failed to send payment request email:", err)
-    );
+    trackNotification({
+      bookingId,
+      type: "PAYMENT_REQUEST",
+      channel: "EMAIL",
+      sendFn: () => sendEmail(booking.client.email, emailData.subject, emailData.html),
+    }).catch((err) => console.error("Failed to track payment request email:", err));
 
     await createAuditLog({
       action: AuditAction.PAYMENT_REQUEST_CREATED,

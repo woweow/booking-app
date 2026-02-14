@@ -45,6 +45,7 @@ import {
 import { StatusBadge } from "@/components/booking/status-badge";
 import { BookingActions } from "@/components/booking/booking-actions";
 import { AvailabilityPicker } from "@/components/booking/availability-picker";
+import { OutreachTimeline } from "@/components/booking/outreach-timeline";
 import {
   PaymentRequired,
   PaymentSuccess,
@@ -598,6 +599,9 @@ function BookingDetailContent() {
               </CardContent>
             </Card>
           )}
+
+          {/* Outreach timeline (artist only) */}
+          {isArtist && <OutreachTimeline bookingId={booking.id} />}
 
           {/* Decline reason */}
           {booking.declineReason && (

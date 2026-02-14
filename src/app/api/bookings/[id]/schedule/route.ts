@@ -9,6 +9,7 @@ import { scheduleBookingNotifications } from "@/lib/notifications";
 import { syncBookingToGoogleCalendar } from "@/lib/google-calendar";
 import { sendEmail, depositRequestEmail } from "@/lib/email";
 import { sendSMS } from "@/lib/sms";
+import { trackNotification } from "@/lib/notifications";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       console.error("Failed to sync to Google Calendar:", err)
     );
 
-    // Send deposit request email and SMS (non-blocking)
+    // Track deposit request notifications (non-blocking)
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
     const paymentLink = `${baseUrl}/bookings/${id}`;
     const apptDateStr = appointmentDate.toLocaleDateString("en-US", {
@@ -150,16 +151,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         apptDateStr,
         paymentLink
       );
-      sendEmail(updated.client.email, emailData.subject, emailData.html).catch((err) =>
-        console.error("Failed to send deposit email:", err)
-      );
+      trackNotification({
+        bookingId: id,
+        type: "DEPOSIT_REQUEST",
+        channel: "EMAIL",
+        sendFn: () => sendEmail(updated.client.email, emailData.subject, emailData.html),
+      }).catch((err) => console.error("Failed to track deposit email:", err));
     }
 
     if (updated.client.phone) {
       const smsBody = `Hi ${updated.client.name}! Your appointment at Studio Saturn is set for ${apptDateStr}. Please pay your deposit to confirm: ${paymentLink}`;
-      sendSMS(updated.client.phone, smsBody).catch((err) =>
-        console.error("Failed to send schedule SMS:", err)
-      );
+      trackNotification({
+        bookingId: id,
+        type: "DEPOSIT_REQUEST",
+        channel: "SMS",
+        sendFn: () => sendSMS(updated.client.phone!, smsBody),
+      }).catch((err) => console.error("Failed to track deposit SMS:", err));
     }
 
     // Audit log

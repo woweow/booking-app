@@ -9,18 +9,18 @@ fonts:
   mono: Fira Code
 ---
 
-# Owning Your Tools
+# Break the Barriers
 
 <div class="divider"></div>
 
-<h2>Built in one week. Replaced a subscription.</h2>
+<h2 style="max-width: 32rem; margin: 0 auto; line-height: 1.6;">
+Take something powerful that's locked behind expertise, cost, or infrastructure — and put it in everyone's hands.
+</h2>
 
 <!--
-"I'm going to show you something I built in a week. Not a prototype. Not a demo app. A production platform that replaced a paid SaaS subscription my wife was using to run her tattoo business."
+"Hey Anthropic, thanks for having me."
 
-"My wife is a working tattoo artist. She was paying hundreds of dollars a month for a booking platform that didn't do what she needed. So I built her one."
-
-Keep it direct. Let the simplicity of the slide do the work. Pause.
+"For this hackathon project I decided to tackle Problem Statement Two: Break the Barriers. Take something powerful that's locked behind expertise and cost and put it in someone else's hands — in everyone's hands."
 -->
 
 ---
@@ -28,16 +28,10 @@ layout: center
 class: bg-warm
 ---
 
-# $300/month for software that didn't fit.
+# My wife pays $200/month for booking software.
 
 <!--
-"Tattoo artists rely on booking platforms — they're not optional. You need deposits, scheduling, client communication, consent forms. The existing platforms charge $200-400 a month. And the feature roadmaps are locked. You get what they ship."
-
-"My wife had specific workflows these platforms couldn't support. Custom deposit flows. Specific booking types. The way she wanted to communicate with clients. None of it was available. She was adapting to the software instead of the software adapting to her."
-
-"She was paying $300 a month for software that fought her every day."
-
-Pause here. Let the number sit.
+"My wife owns a small business — she's a tattoo artist. In order to book her clients she pays for a software platform that costs a few hundred dollars a month. Not only does she have to pay $200 a month, but she's at the whims of their development team for what features they build."
 -->
 
 ---
@@ -45,16 +39,16 @@ layout: center
 class: bg-green-soft
 ---
 
-# So I built her one.
+# The floor has been raised.
+
+<div class="divider"></div>
+
+<h2>One week. Claude Opus 4.6.</h2>
 
 <!--
-"This project is not about reinventing tattoo booking. It's about proving something bigger."
+"The advancements in AI allow us to own our own tools. The floor for creating the software we use in our daily lives has been elevated. I was able to sit down and build her a complete replacement in one week using Claude Opus 4.6."
 
-"Modern AI models — specifically Claude — make it possible for one person to build and ship real, production-grade infrastructure in a week. Not a mockup. Not a prototype. A deployed platform that replaced an existing paid subscription."
-
-"AI as a development accelerator. One week from concept to production. Fully deployed and live. Replacing a service that cost $300 a month."
-
-"The thesis is simple: you can own your tools now."
+"I'll show you the demo in a moment, but there are a couple things I want to call out first."
 -->
 
 ---
@@ -62,48 +56,108 @@ layout: center
 class: bg-forest
 ---
 
-# Real integrations. Real infrastructure.
+# Production integrations, built in.
 
 <div class="service-grid mt-12">
   <div class="service-pill">Stripe</div>
   <div class="service-pill">Twilio</div>
   <div class="service-pill">Google Calendar</div>
-  <div class="service-pill">Vercel</div>
-  <div class="service-pill">PostgreSQL</div>
-  <div class="service-pill">Redis</div>
 </div>
 
 <!--
-"Let me be concrete about what 'production-grade' means."
+"Stripe integration is ready to go for taking payments. We're hooked up with Twilio for sending emails and text message notifications. And we're connected to my wife's Google Calendar so she can see her appointments on the go."
 
-"Stripe is processing real deposits and payments, with full webhook handling and idempotency. Twilio sends SMS reminders — one week out, one day out, two hours before an appointment. Resend handles all email — confirmations, aftercare follow-ups six weeks later, touch-up offers six months later."
+"With that — let's take a look at what I've built."
+-->
 
-"Google Calendar has two-way OAuth sync. When she confirms a booking, it appears on her calendar. When she publishes her availability, those open days sync too."
+---
+layout: default
+---
 
-"There's image upload for design references. Encrypted consent forms with medical data. A full client messaging system. Three different booking types — custom pieces, flash pieces, and ad-hoc links."
+# Key Features — Books
 
-"All of it deployed on Vercel, backed by Neon PostgreSQL, rate-limited with Upstash Redis. This is not a toy."
+<v-clicks>
 
-Click through each service name. Let them land.
+- **Custom books** — clients request unique pieces
+- **Flash books** — pre-made art, book a piece as-is
+- **Configurable availability** — set days and hours per book
+- **Image uploads** — clients share reference art
+
+</v-clicks>
+
+<!--
+"She can create different types of books. Custom books let clients come to her with an idea — they can upload reference images, describe what they want, and start a conversation. Flash books are the opposite — she uploads her own art and clients can claim a piece as-is."
+
+"When she opens a book, she defines her availability. Tuesdays 9 to 5, Saturdays 4 to 6 — whatever fits her schedule. That becomes the set of time slots clients can book from."
+-->
+
+---
+layout: default
+class: bg-warm
+---
+
+# Key Features — The Flow
+
+<v-clicks>
+
+- **Chat** — artist and client align on vision
+- **Scheduling** — clients pick from available time slots
+- **Deposits** — collected via Stripe before confirmation
+- **Calendar sync** — appointments land on Google Calendar
+
+</v-clicks>
+
+<!--
+"Once a client submits a booking, the chat opens up. My wife can go back and forth with them to make sure their vision aligns with the work she does. Once she's happy, she activates the appointment — the client picks a date from her available slots, and that slot gets consumed."
+
+"During this process we collect a deposit through Stripe. And when the appointment is confirmed, it syncs straight to her Google Calendar so she can see it on the go."
+-->
+
+---
+layout: default
+class: bg-green-soft
+---
+
+# Key Features — Through Completion
+
+<v-clicks>
+
+- **Email reminders** — one week before the appointment
+- **SMS reminders** — day of via Twilio
+- **Checkout** — Stripe payment request on completion
+- **Full lifecycle** — from first message to final payment
+
+</v-clicks>
+
+<!--
+"As the appointment approaches, the client gets an email reminder a week out. Day of, they get a text message. When my wife finishes the tattoo, she closes the appointment — which triggers a Stripe payment request for the remaining balance."
+
+"The whole thing is end-to-end. From the first message to the final payment, it's all handled in one platform that she owns."
 -->
 
 ---
 layout: center
+class: bg-warm
 ---
 
-# Architecture
-
-<div class="muted mt-4" style="font-size: 1.25rem;">
-TODO
-</div>
+# Let's take a look.
 
 <!--
-TODO: Add architecture diagram here.
+This is the demo transition. Switch to the live app.
 
-Stack overview for when you present without it:
-"Next.js on Vercel for the frontend and API. PostgreSQL on Neon through Prisma. Stripe webhooks for payment processing. Twilio for SMS, Resend for email. Google Calendar OAuth for scheduling sync. Vercel Blob for image storage. Upstash Redis for rate limiting."
+DEMO WALKTHROUGH:
 
-"The point of showing this isn't complexity — it's credibility. These are all real, connected, production services."
+1. BOOKS — "I've given her the ability to create multiple types of tattoo appointments called Books. Here we can see she has custom books as well as flash books."
+
+2. CUSTOM BOOKINGS — "Custom books allow for back and forth with the customer — you can see here they can upload images to create their appointments."
+
+3. CHAT — "There's a chat integration where the artist can go back and forth with clients to discuss before confirming appointments."
+
+4. MANAGEMENT SUITE — "My wife has an entire management suite. She can configure her books for how much they cost, deposits, all of it."
+
+5. CHECKOUT FLOW — "It takes us all the way through the checkout process when the tattoo is completed, where she can charge the customer."
+
+6. THE FULL PICTURE — "Customers can put in deposits, and it has everything my wife wishes she had in her previous application."
 -->
 
 ---
@@ -115,33 +169,10 @@ class: bg-green-soft
 
 <div class="divider"></div>
 
-<h2>Full control. Ship today.</h2>
+<h2>Every service on the free tier.</h2>
 
 <!--
-"The tangible outcome: she went from paying over $300 a month to $0. The hosting is free-tier Vercel. The database is free-tier Neon. The only costs are transactional — Stripe fees on actual payments, Twilio charges on actual messages sent."
-
-"But honestly, the money isn't the real story. The real value is control. Every feature works exactly the way she needs it to. If she wants a new workflow tomorrow, I can build it tomorrow. Not next quarter. Not after it gets enough upvotes on a feature request board. Tomorrow."
-
-"No vendor lock-in. No dependency on someone else's product roadmap. She owns the infrastructure."
--->
-
----
-layout: center
-class: bg-warm
----
-
-# One person. One week.
-
-<div class="divider"></div>
-
-<h2 class="accent">This wasn't possible three years ago.</h2>
-
-<!--
-"I want to be honest about something. I'm a software engineer. I could have built this without AI — eventually. But it would have taken months, not a week."
-
-"The AI didn't write the code for me. It accelerated every part of the development cycle — architecture decisions, integration patterns, edge case handling, test scenarios. Enough to compress what would have been months of weekends and evenings into one focused week."
-
-"Built for one real person. Solves real daily friction. And that's the point — this is what changes when you can build at this speed. Software becomes personal again."
+"The best part: using the entirely free tier of every service, after the input costs of the tokens, my wife now has a platform she can use from here on out — totally for free — replacing the few hundred dollars a month she was previously spending."
 -->
 
 ---
@@ -149,35 +180,10 @@ layout: center
 class: bg-forest
 ---
 
-# Let me show you.
+# Own your tools.
 
 <!--
-"Alright. Enough slides. Let me show you the actual platform."
+"I really think this demonstrates just how powerful models like Opus 4.6 are. They enable us to create our own software, remove the gatekeeping of software tools in our lives, and own our own tools."
 
-Transition directly into the demo. Keep it tight.
-
-DEMO SCRIPT (target: 5–7 minutes total):
-
-1. CREATE A BOOKING (60s)
-   Walk through the client-facing booking form. Show custom piece request vs flash piece selection. Show how the booking enters the artist's queue as PENDING.
-
-2. PROCESS A STRIPE PAYMENT (60s)
-   Show the deposit flow. Artist approves → client gets deposit request → Stripe checkout → webhook fires → booking status updates to CONFIRMED automatically.
-
-3. SHOW CALENDAR SYNC (30s)
-   Flip to Google Calendar. Show the confirmed appointment appearing. Mention two-way sync — open availability days also sync when books are published.
-
-4. UPLOAD IMAGE REFERENCE (30s)
-   Upload a design reference photo to the booking. Show it attached and viewable by both artist and client.
-
-5. SHOW REMINDER FLOW (45s)
-   Walk through the notification system. Show the scheduled notifications in admin: 1-week email, 1-day email+SMS, 2-hour SMS. Show aftercare and touch-up follow-ups.
-
-6. SHOW CHAT WITH CLIENT (30s)
-   Open the messaging interface. Show in-booking chat between artist and client. Show how payment requests can be sent inline.
-
-7. ARTIST MANAGEMENT DASHBOARD (90s)
-   Walk through: booking list with status filters, client database, flash piece catalog management, availability settings, consent form viewer with encrypted medical data, book publishing.
-
-Keep each step punchy. No narrating what they can already see — explain why each feature matters.
+"Thank you so much to Anthropic for hosting this hackathon."
 -->

@@ -78,15 +78,14 @@ layout: default
 
 <v-clicks>
 
-- **Custom books** — clients request unique pieces
-- **Flash books** — pre-made art, book a piece as-is
-- **Configurable availability** — set days and hours per book
-- **Image uploads** — clients share reference art
+- Custom books
+- Flash books
+- Configurable availability
 
 </v-clicks>
 
 <!--
-"She can create different types of books. Custom books let clients come to her with an idea — they can upload reference images, describe what they want, and start a conversation. Flash books are the opposite — she uploads her own art and clients can claim a piece as-is."
+"She can create different types of books. Custom books let clients come to her with an idea — they upload reference images, describe what they want, and start a conversation. Flash books are the opposite — she uploads her own art and clients can claim a piece as-is."
 
 "When she opens a book, she defines her availability. Tuesdays 9 to 5, Saturdays 4 to 6 — whatever fits her schedule. That becomes the set of time slots clients can book from."
 -->
@@ -96,21 +95,20 @@ layout: default
 class: bg-warm
 ---
 
-# Key Features — The Flow
+# Key Features — Booking
 
 <v-clicks>
 
-- **Chat** — artist and client align on vision
-- **Scheduling** — clients pick from available time slots
-- **Deposits** — collected via Stripe before confirmation
-- **Calendar sync** — appointments land on Google Calendar
+- Chat with clients
+- Scheduling from available slots
+- Deposits and final payments via Stripe
 
 </v-clicks>
 
 <!--
 "Once a client submits a booking, the chat opens up. My wife can go back and forth with them to make sure their vision aligns with the work she does. Once she's happy, she activates the appointment — the client picks a date from her available slots, and that slot gets consumed."
 
-"During this process we collect a deposit through Stripe. And when the appointment is confirmed, it syncs straight to her Google Calendar so she can see it on the go."
+"During this process we collect a deposit through Stripe before the appointment is confirmed."
 -->
 
 ---
@@ -118,21 +116,21 @@ layout: default
 class: bg-green-soft
 ---
 
-# Key Features — Through Completion
+# Key Features — Bonus
 
 <v-clicks>
 
-- **Email reminders** — one week before the appointment
-- **SMS reminders** — day of via Twilio
-- **Checkout** — Stripe payment request on completion
-- **Full lifecycle** — from first message to final payment
+- Email and SMS reminders
+- Google Calendar sync
 
 </v-clicks>
 
 <!--
-"As the appointment approaches, the client gets an email reminder a week out. Day of, they get a text message. When my wife finishes the tattoo, she closes the appointment — which triggers a Stripe payment request for the remaining balance."
+"As the appointment approaches, the client gets an email reminder a week out. Day of, they get a text message via Twilio."
 
-"The whole thing is end-to-end. From the first message to the final payment, it's all handled in one platform that she owns."
+"When my wife finishes the tattoo, she closes the appointment — one click triggers a Stripe payment request for the remaining balance."
+
+"And everything syncs to her Google Calendar so she can see her appointments on the go."
 -->
 
 ---

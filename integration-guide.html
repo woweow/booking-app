@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Saturn - Integration Setup Guide</title>
+<style>
+  :root {
+    --bg: #FAF9F6;
+    --charcoal: #2C2C2C;
+    --taupe: #B8A898;
+    --sage: #7D8471;
+    --green: #4CAF50;
+    --amber: #F59E0B;
+    --red: #EF4444;
+    --blue: #3B82F6;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--charcoal);
+    line-height: 1.6;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    padding: 40px 0 30px;
+    border-bottom: 2px solid var(--taupe);
+    margin-bottom: 30px;
+  }
+
+  header h1 {
+    font-family: Georgia, serif;
+    font-size: 28px;
+    font-weight: normal;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  header p {
+    color: var(--sage);
+    font-size: 14px;
+  }
+
+  .progress-bar {
+    background: #e5e5e5;
+    border-radius: 20px;
+    height: 12px;
+    margin: 20px 0 10px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    background: linear-gradient(90deg, var(--sage), var(--green));
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    text-align: center;
+    font-size: 13px;
+    color: var(--sage);
+  }
+
+  /* Integration Cards */
+  .integration {
+    border: 1px solid #e0dcd7;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    background: white;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+
+  .integration:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .integration-header {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    gap: 14px;
+  }
+
+  .integration-header:hover {
+    background: #faf8f5;
+  }
+
+  .chevron {
+    font-size: 12px;
+    color: var(--taupe);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    width: 16px;
+  }
+
+  .integration.open > .integration-header .chevron {
+    transform: rotate(90deg);
+  }
+
+  .integration-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+    width: 36px;
+    text-align: center;
+  }
+
+  .integration-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .integration-name {
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .integration-desc {
+    font-size: 13px;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-required { background: #fef2f2; color: var(--red); }
+  .badge-recommended { background: #fffbeb; color: var(--amber); }
+  .badge-optional { background: #f0fdf4; color: var(--green); }
+  .badge-configured { background: #eff6ff; color: var(--blue); }
+
+  .section-progress {
+    font-size: 12px;
+    color: var(--sage);
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+
+  .complete-all-btn {
+    background: none;
+    border: 1px solid #e0dcd7;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: var(--sage);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+
+  .complete-all-btn:hover {
+    background: var(--green);
+    color: white;
+    border-color: var(--green);
+  }
+
+  .complete-all-btn.all-done {
+    background: var(--green);
+    color: white;
+    border-color: var(--green);
+  }
+
+  .integration-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid #f0ece7;
+  }
+
+  .integration.open > .integration-body {
+    display: block;
+  }
+
+  /* Steps */
+  .step-group {
+    margin-top: 16px;
+  }
+
+  .step-group-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--sage);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f0ece7;
+  }
+
+  .step {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f8f6f3;
+    align-items: flex-start;
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--sage);
+    cursor: pointer;
+  }
+
+  .step-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .step-content.checked {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+
+  .step-label {
+    font-weight: 500;
+    font-size: 14px;
+  }
+
+  .step-detail {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  /* Code blocks */
+  code {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 14px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    margin: 8px 0;
+    line-height: 1.5;
+    position: relative;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #888;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+  }
+
+  .copy-btn:hover { background: rgba(255,255,255,0.2); color: #ccc; }
+
+  /* Links */
+  a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+
+  a:hover { text-decoration: underline; }
+
+  .url-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin: 2px 0;
+  }
+
+  /* Env var highlight */
+  .env-var {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* Info boxes */
+  .info-box {
+    background: #eff6ff;
+    border-left: 3px solid var(--blue);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+
+  .warn-box {
+    background: #fffbeb;
+    border-left: 3px solid var(--amber);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+
+  .success-box {
+    background: #f0fdf4;
+    border-left: 3px solid var(--green);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+
+  /* Sub-sections (collapsible within integrations) */
+  .sub-section {
+    border: 1px solid #f0ece7;
+    border-radius: 8px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .sub-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--charcoal);
+    background: #faf8f5;
+  }
+
+  .sub-section-header:hover { background: #f5f2ed; }
+
+  .sub-section-body {
+    display: none;
+    padding: 12px 14px;
+  }
+
+  .sub-section.open > .sub-section-body {
+    display: block;
+  }
+
+  .sub-section.open > .sub-section-header .chevron {
+    transform: rotate(90deg);
+  }
+
+  /* Env summary table */
+  .env-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+
+  .env-table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: #f5f2ed;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--sage);
+  }
+
+  .env-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0ece7;
+    vertical-align: top;
+  }
+
+  .env-table code {
+    font-size: 11.5px;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 30px 0;
+    color: var(--taupe);
+    font-size: 13px;
+    border-top: 1px solid #e0dcd7;
+    margin-top: 40px;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    header { padding: 24px 0 20px; }
+    header h1 { font-size: 22px; }
+    .integration-header { padding: 12px 14px; }
+    .integration-body { padding: 0 14px 16px; }
+    .badge { font-size: 10px; padding: 2px 8px; }
+    .integration-desc { display: none; }
+    pre { font-size: 11px; padding: 10px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>STUDIO SATURN</h1>
+  <p>Integration Setup Guide &mdash; ordered by priority</p>
+  <div class="progress-bar"><div class="progress-bar-fill" id="globalProgress"></div></div>
+  <div class="progress-text" id="globalProgressText">0 of 0 steps completed</div>
+</header>
+
+<!-- ===================== DATABASE (already configured) ===================== -->
+<div class="integration" id="int-db">
+  <div class="integration-header" onclick="toggleIntegration('int-db')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#128451;</span>
+    <div class="integration-info">
+      <div class="integration-name">Neon PostgreSQL</div>
+      <div class="integration-desc">Primary database &mdash; nothing works without this</div>
+    </div>
+    <span class="badge badge-configured">Configured</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-db')">Mark all</button>
+    <span class="section-progress" id="int-db-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="success-box">
+      Your database is connected and working. Just verify the production env vars are in Vercel.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Verify Production Database</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Verify database env vars are in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Confirm these exist:
+            <table class="env-table">
+              <tr><th>Key</th><th>What It Should Look Like</th></tr>
+              <tr><td><code>DATABASE_URL</code></td><td><code>postgresql://user:pass@host/db?sslmode=require</code></td></tr>
+              <tr><td><code>POSTGRES_PRISMA_URL</code></td><td>Same but with <code>&pgbouncer=true</code></td></tr>
+              <tr><td><code>POSTGRES_URL_NON_POOLING</code></td><td>Direct connection (no pgbouncer), used for migrations</td></tr>
+            </table>
+            If these say "Linked from Neon" or "Linked from Postgres", they're connected via the Vercel integration and you're good.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Confirm the schema is deployed</div>
+          <div class="step-detail">
+            The Prisma schema gets pushed to Neon on each deploy via the build step. To verify, open your deployed site and confirm you can register and log in. If the app loads without database errors, the schema is deployed.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUTH & ENCRYPTION (already configured) ===================== -->
+<div class="integration" id="int-auth">
+  <div class="integration-header" onclick="toggleIntegration('int-auth')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#128274;</span>
+    <div class="integration-info">
+      <div class="integration-name">NextAuth + Field Encryption</div>
+      <div class="integration-desc">Session management &amp; medical data encryption</div>
+    </div>
+    <span class="badge badge-configured">Configured</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-auth')">Mark all</button>
+    <span class="section-progress" id="int-auth-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="success-box">
+      These should already be configured. Verify they're set in Vercel's environment variables.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Verify Production Env Vars</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Verify <span class="env-var">AUTH_SECRET</span> is in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Check that <code>AUTH_SECRET</code> exists. If not, generate one:
+            <pre>openssl rand -base64 32<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            Add it as <code>AUTH_SECRET</code> for all environments.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Verify <span class="env-var">NEXTAUTH_URL</span> is in Vercel</div>
+          <div class="step-detail">
+            Check that <code>NEXTAUTH_URL</code> is set to your production URL (e.g. <code>https://your-app.vercel.app</code>). Vercel usually auto-sets this, but verify it's correct and points to your actual domain.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Verify <span class="env-var">FIELD_ENCRYPTION_KEY</span> is in Vercel</div>
+          <div class="step-detail">
+            Check that <code>FIELD_ENCRYPTION_KEY</code> exists. The format must be <code>v1:BASE64_KEY</code> where the key is exactly 32 bytes (256 bits). If missing, generate one:
+            <pre>echo "v1:$(openssl rand -base64 32)"<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            <div class="warn-box"><strong>Critical:</strong> Use the <em>same</em> encryption key across all environments. If you use a different key in production vs development, encrypted data from one won't decrypt in the other.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== STRIPE ===================== -->
+<div class="integration" id="int-stripe">
+  <div class="integration-header" onclick="toggleIntegration('int-stripe')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#128179;</span>
+    <div class="integration-info">
+      <div class="integration-name">Stripe</div>
+      <div class="integration-desc">Deposit payments &mdash; bookings can't be confirmed without this</div>
+    </div>
+    <span class="badge badge-required">Required</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-stripe')">Mark all</button>
+    <span class="section-progress" id="int-stripe-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="warn-box">
+      <strong>You already have a live Stripe account.</strong> Do NOT use your live keys for this app during development. Instead, you'll use Stripe's built-in <strong>Test Mode</strong> on your existing account. Test mode gives you separate API keys that can't touch real money or real customers. Your wife's live business is completely unaffected.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Switch to Test Mode</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Log into your existing Stripe dashboard</div>
+          <div class="step-detail">
+            Go to <a href="https://dashboard.stripe.com" target="_blank" class="url-link">dashboard.stripe.com</a> and sign in with your existing account.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Toggle Test Mode ON</div>
+          <div class="step-detail">
+            In the top-right corner of the dashboard, find the <strong>"Test mode"</strong> toggle and turn it ON (it will be highlighted/orange). Everything you do while this is active &mdash; keys, webhooks, payments &mdash; is sandboxed. No real charges, no impact on the live account. You can toggle freely between live and test mode at any time.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Get Test API Keys</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Navigate to the API Keys page</div>
+          <div class="step-detail">
+            With Test Mode on, click <strong>"Developers"</strong> in the left sidebar (or top nav), then click <strong>"API keys"</strong>. Or go directly to
+            <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" class="url-link">dashboard.stripe.com/test/apikeys</a>.
+            <div class="info-box">The URL has <code>/test/</code> in it &mdash; that's how you know you're looking at test keys, not live ones.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Copy the <strong>Publishable key</strong></div>
+          <div class="step-detail">
+            The <strong>Publishable key</strong> starts with <code>pk_test_</code> (not <code>pk_live_</code>). Click to copy it and save it somewhere &mdash; you'll add it to Vercel as an env var in a later step. The env var name will be:
+            <pre>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Copy the <strong>Secret key</strong></div>
+          <div class="step-detail">
+            The <strong>Secret key</strong> starts with <code>sk_test_</code>. Click <strong>"Reveal test key"</strong>, then copy it. Save it alongside the publishable key. The env var name will be:
+            <pre>STRIPE_SECRET_KEY=sk_test_...<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            <div class="warn-box">Double-check these start with <code>_test_</code> not <code>_live_</code>. Never commit any Stripe key to git.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Set Up Webhook</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Navigate to the Webhooks page (in Test Mode)</div>
+          <div class="step-detail">
+            Still in Test Mode, go to <strong>"Developers"</strong> &rarr; <strong>"Webhooks"</strong>. Or go to
+            <a href="https://dashboard.stripe.com/test/webhooks" target="_blank" class="url-link">dashboard.stripe.com/test/webhooks</a>.
+            <div class="info-box">This is a separate webhooks config from your live account. Test mode webhooks only fire for test payments.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Add a new endpoint</div>
+          <div class="step-detail">
+            Click <strong>"Add endpoint"</strong>. In the <strong>"Endpoint URL"</strong> field, enter your Vercel deployment URL:
+            <pre>https://YOUR-APP-URL.vercel.app/api/webhooks/stripe<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            Replace <code>YOUR-APP-URL</code> with your actual Vercel domain.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Select events to listen for</div>
+          <div class="step-detail">
+            Click <strong>"Select events"</strong> and check these three events:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><code>checkout.session.completed</code></li>
+              <li><code>checkout.session.expired</code></li>
+              <li><code>payment_intent.payment_failed</code></li>
+            </ul>
+            Then click <strong>"Add endpoint"</strong> at the bottom to save.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Copy the Webhook Signing Secret</div>
+          <div class="step-detail">
+            After creating the endpoint, you'll land on the endpoint detail page. Under <strong>"Signing secret"</strong>, click <strong>"Reveal"</strong> to see the value. It starts with <code>whsec_</code>. Copy it. The env var name will be:
+            <pre>STRIPE_WEBHOOK_SECRET=whsec_...<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Add to Vercel & Test</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Set all three Stripe env vars in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Add these three:
+            <table class="env-table">
+              <tr><th>Key</th><th>Value</th><th>Environments</th></tr>
+              <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Your <code>sk_test_...</code> key</td><td>All</td></tr>
+              <tr><td><code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code></td><td>Your <code>pk_test_...</code> key</td><td>All</td></tr>
+              <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>Your <code>whsec_...</code> secret</td><td>All</td></tr>
+            </table>
+            For each: paste the Key, paste the Value, check <strong>Production</strong> + <strong>Preview</strong> + <strong>Development</strong>, then click <strong>"Save"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Redeploy to pick up new env vars</div>
+          <div class="step-detail">
+            Go to your project's <strong>"Deployments"</strong> tab, find the latest deployment, click the <strong>"..."</strong> menu on the right, and select <strong>"Redeploy"</strong>. This ensures the new env vars take effect.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Test a payment on the live site</div>
+          <div class="step-detail">
+            On your deployed Vercel site, go through a booking flow that requires a deposit. When you reach the Stripe checkout page, use the test card number:
+            <pre>4242 4242 4242 4242<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            Use any future expiry date, any 3-digit CVC, and any ZIP code. If the payment succeeds and the booking status updates to confirmed, Stripe is fully working.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-section" id="stripe-go-live">
+      <div class="sub-section-header" onclick="toggleSubSection('stripe-go-live')">
+        <span class="chevron">&#9654;</span>
+        Later: Switching to Live Mode for Real Payments
+      </div>
+      <div class="sub-section-body">
+        <div class="info-box">When you're ready to accept real money, just toggle Test Mode OFF in the Stripe dashboard, grab the live keys (<code>pk_live_</code> and <code>sk_live_</code>), create a new webhook endpoint for live mode, and update the three env vars in Vercel. No code changes needed &mdash; the app works the same way with live keys.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== VERCEL BLOB ===================== -->
+<div class="integration" id="int-blob">
+  <div class="integration-header" onclick="toggleIntegration('int-blob')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#128230;</span>
+    <div class="integration-info">
+      <div class="integration-name">Vercel Blob Storage</div>
+      <div class="integration-desc">Image uploads for reference photos &amp; flash pieces</div>
+    </div>
+    <span class="badge badge-configured">Verify</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-blob')">Mark all</button>
+    <span class="section-progress" id="int-blob-progress"></span>
+  </div>
+  <div class="integration-body">
+    <div class="info-box">
+      You've already connected blob storage. This section verifies it's working end-to-end on your deployed site. Without it, clients can't upload reference photos and you can't upload flash piece images.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Verify Blob Store Exists</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Open your Vercel project dashboard</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">vercel.com/dashboard</a>
+            and click on your booking app project.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Navigate to Storage tab</div>
+          <div class="step-detail">
+            In the top navigation of your project, click <strong>"Storage"</strong>. You should see a Blob store listed here. If you don't see one, click <strong>"Create"</strong> &rarr; <strong>"Blob"</strong> &rarr; give it a name like <code>booking-uploads</code> &rarr; click <strong>"Create"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Confirm the <span class="env-var">BLOB_READ_WRITE_TOKEN</span> env var exists</div>
+          <div class="step-detail">
+            Click on the Blob store name. Then click the <strong>".env.local"</strong> tab. You should see <code>BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...</code>. Then go to your project's <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong> and confirm the token is present there too. If it says "Linked from Blob Store" you're good.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Test Upload on Live Site</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Test an upload on the deployed site</div>
+          <div class="step-detail">
+            On your deployed Vercel site, log in as a client user. Navigate to the <strong>new booking</strong> form and try to upload a reference image (any JPEG/PNG under 5MB). If the image appears in the form after upload, blob storage is working.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Verify the file landed in the Blob store</div>
+          <div class="step-detail">
+            Go back to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Storage"</strong> &rarr; click your Blob store &rarr; <strong>"Browser"</strong> tab. You should see the file you just uploaded listed there.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== RESEND ===================== -->
+<div class="integration" id="int-resend">
+  <div class="integration-header" onclick="toggleIntegration('int-resend')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#9993;</span>
+    <div class="integration-info">
+      <div class="integration-name">Resend</div>
+      <div class="integration-desc">Transactional emails &mdash; confirmations, reminders, password resets</div>
+    </div>
+    <span class="badge badge-required">Required</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-resend')">Mark all</button>
+    <span class="section-progress" id="int-resend-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="info-box">
+      The app sends booking confirmations, deposit request emails, appointment reminders, password resets, and aftercare follow-ups. Without Resend, all of these silently fail &mdash; the app still works, but nobody gets notified of anything.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Create Account & Get API Key</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Sign up for Resend</div>
+          <div class="step-detail">
+            Go to <a href="https://resend.com/signup" target="_blank" class="url-link">resend.com/signup</a>.
+            Create an account using your email (or GitHub OAuth). The free tier gives you 3,000 emails/month &mdash; more than enough.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Create an API key</div>
+          <div class="step-detail">
+            Once logged in, go to <a href="https://resend.com/api-keys" target="_blank" class="url-link">resend.com/api-keys</a>.
+            Click <strong>"Create API Key"</strong>. Give it a name like <code>studio-saturn</code>. For permission, select <strong>"Sending access"</strong>. Leave domain as "All domains". Click <strong>"Create"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Copy the API key immediately</div>
+          <div class="step-detail">
+            The key (starts with <code>re_</code>) is only shown <strong>once</strong>. Copy it now. If you lose it, you'll need to create a new one.
+            <pre>RESEND_API_KEY=re_...<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Domain Verification</div>
+
+      <div class="info-box">
+        Your app sends emails from <code>bookings@studiosaturn.com</code>. For emails to actually deliver (not land in spam), you need to verify your domain with Resend. If you don't have a custom domain yet, Resend lets you send from their test domain (<code>onboarding@resend.dev</code>) for development &mdash; you can skip this section and come back later.
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Add your domain</div>
+          <div class="step-detail">
+            Go to <a href="https://resend.com/domains" target="_blank" class="url-link">resend.com/domains</a>.
+            Click <strong>"Add Domain"</strong>. Enter your domain (e.g. <code>studiosaturn.com</code> or whatever the final domain will be). Select your DNS provider region. Click <strong>"Add"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Add DNS records</div>
+          <div class="step-detail">
+            Resend will show you DNS records to add. You'll see records for:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><strong>SPF</strong> &mdash; a TXT record</li>
+              <li><strong>DKIM</strong> &mdash; typically 3 CNAME records</li>
+              <li><strong>DMARC</strong> &mdash; an optional TXT record (recommended)</li>
+            </ul>
+            Log into your DNS provider (wherever you registered your domain &mdash; Cloudflare, Namecheap, GoDaddy, etc.) and add each record exactly as shown. DNS propagation can take up to 72 hours, but usually completes in minutes.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Verify the domain</div>
+          <div class="step-detail">
+            Back on the Resend domains page, click <strong>"Verify"</strong> next to your domain. If the DNS records have propagated, it should show a green checkmark. If not, wait a bit and try again.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Add to Vercel & Test</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Set the Resend env var in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Add:
+            <table class="env-table">
+              <tr><th>Key</th><th>Value</th><th>Environments</th></tr>
+              <tr><td><code>RESEND_API_KEY</code></td><td>Your <code>re_...</code> key</td><td>All</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Redeploy and test an email</div>
+          <div class="step-detail">
+            Redeploy your app, then trigger an email-sending action on the deployed site &mdash; for example, use the <strong>"Forgot Password"</strong> flow, or submit a test booking. Check Resend's <a href="https://resend.com/emails" target="_blank" class="url-link">email logs</a> to confirm the email was sent.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== VERCEL CRON ===================== -->
+<div class="integration" id="int-cron">
+  <div class="integration-header" onclick="toggleIntegration('int-cron')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#9200;</span>
+    <div class="integration-info">
+      <div class="integration-name">Vercel Cron Jobs</div>
+      <div class="integration-desc">Scheduled reminders &amp; token cleanup</div>
+    </div>
+    <span class="badge badge-recommended">Recommended</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-cron')">Mark all</button>
+    <span class="section-progress" id="int-cron-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="info-box">
+      Your app has a <code>vercel.json</code> that already defines two cron jobs. Vercel runs these automatically on deploy &mdash; you just need to set the <code>CRON_SECRET</code> env var so the endpoints can authenticate requests. This powers the scheduled email/SMS reminders, so set this up right after Resend. Vercel's Hobby plan supports up to 2 cron jobs (you have exactly 2).
+    </div>
+
+    <div class="sub-section" id="cron-details">
+      <div class="sub-section-header" onclick="toggleSubSection('cron-details')">
+        <span class="chevron">&#9654;</span>
+        What the cron jobs do
+      </div>
+      <div class="sub-section-body">
+        <table class="env-table">
+          <tr><th>Endpoint</th><th>Schedule</th><th>Purpose</th></tr>
+          <tr>
+            <td><code>/api/cron/notifications</code></td>
+            <td>Daily at 1:00 PM UTC</td>
+            <td>Processes scheduled email and SMS reminders (1 week, 1 day, 2 hours before appointments, aftercare follow-ups, etc.)</td>
+          </tr>
+          <tr>
+            <td><code>/api/cron/cleanup-tokens</code></td>
+            <td>Daily at midnight UTC</td>
+            <td>Deletes expired password reset tokens from the database</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Configure Cron Secret</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Generate a CRON_SECRET</div>
+          <div class="step-detail">
+            Open your terminal and run:
+            <pre>openssl rand -base64 32<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            Copy the output. This is a random secret that authenticates cron requests.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Set the env var in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Add:
+            <table class="env-table">
+              <tr><th>Key</th><th>Value</th><th>Environments</th></tr>
+              <tr><td><code>CRON_SECRET</code></td><td>The string from <code>openssl rand</code></td><td>Production, Preview</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Redeploy and verify cron jobs are registered</div>
+          <div class="step-detail">
+            Redeploy your app. Then go to your Vercel project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Cron Jobs"</strong> (in the sidebar). You should see both <code>/api/cron/notifications</code> and <code>/api/cron/cleanup-tokens</code> listed with their schedules. If they're there, Vercel picked up the config from <code>vercel.json</code> automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Verify It Works</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Test manually with curl</div>
+          <div class="step-detail">
+            Test the cron endpoint against your deployed app:
+            <pre>curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
+  https://YOUR-APP.vercel.app/api/cron/notifications<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            You should get a JSON response (not a 401). Replace <code>YOUR_CRON_SECRET</code> with the actual secret you set.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TWILIO ===================== -->
+<div class="integration" id="int-twilio">
+  <div class="integration-header" onclick="toggleIntegration('int-twilio')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#128241;</span>
+    <div class="integration-info">
+      <div class="integration-name">Twilio</div>
+      <div class="integration-desc">SMS appointment reminders &amp; notifications</div>
+    </div>
+    <span class="badge badge-recommended">Recommended</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-twilio')">Mark all</button>
+    <span class="section-progress" id="int-twilio-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="info-box">
+      The app sends SMS reminders at 1 day and 2 hours before appointments, plus deposit confirmation texts. If Twilio isn't configured, these simply won't send &mdash; the app still works, just without SMS. Email notifications (via Resend) cover the same events, so this is a nice-to-have layer on top.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Create Account</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Sign up for Twilio</div>
+          <div class="step-detail">
+            Go to <a href="https://www.twilio.com/try-twilio" target="_blank" class="url-link">twilio.com/try-twilio</a>.
+            Sign up with your email. You'll need to verify your email and phone number. Twilio gives you a free trial with $15 credit &mdash; that's ~1,500 SMS messages.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Get your Account SID and Auth Token</div>
+          <div class="step-detail">
+            After signing up, you'll land on the Console dashboard at
+            <a href="https://console.twilio.com" target="_blank" class="url-link">console.twilio.com</a>.
+            You'll see <strong>"Account Info"</strong> with:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><strong>Account SID</strong> &mdash; starts with <code>AC</code> (always visible)</li>
+              <li><strong>Auth Token</strong> &mdash; click the eye icon to reveal it</li>
+            </ul>
+            Copy both values.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Get a Phone Number</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Claim a trial phone number</div>
+          <div class="step-detail">
+            On the console dashboard, look for a section that says <strong>"Get a trial phone number"</strong> (or the "Get a phone number" button). Click it. Twilio will assign you a phone number. If you want to pick a specific area code, go to <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/incoming" target="_blank" class="url-link">Phone Numbers &rarr; Manage &rarr; Buy a number</a> and search by area code.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Copy the phone number</div>
+          <div class="step-detail">
+            Copy the full phone number in E.164 format (e.g. <code>+15551234567</code>). Include the <code>+</code> and country code.
+          </div>
+        </div>
+      </div>
+
+      <div class="warn-box">
+        <strong>Trial limitation:</strong> On Twilio's free trial, you can only send SMS to <em>verified</em> phone numbers. Go to <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/verified" target="_blank">Verified Caller IDs</a> and add any phone numbers you want to test with (e.g. your own number and your wife's). After upgrading to a paid account, this restriction is removed.
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Add to Vercel & Test</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Set all three Twilio env vars in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Add:
+            <table class="env-table">
+              <tr><th>Key</th><th>Value</th><th>Environments</th></tr>
+              <tr><td><code>TWILIO_ACCOUNT_SID</code></td><td>Your <code>AC...</code> Account SID</td><td>All</td></tr>
+              <tr><td><code>TWILIO_AUTH_TOKEN</code></td><td>Your auth token</td><td>All</td></tr>
+              <tr><td><code>TWILIO_PHONE_NUMBER</code></td><td>Your number, e.g. <code>+15551234567</code></td><td>All</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Redeploy and test</div>
+          <div class="step-detail">
+            Redeploy your app. Then trigger an SMS-sending action on the deployed site &mdash; for example, schedule and confirm a booking. If you've added your phone as a verified caller ID, you should receive a text.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== UPSTASH REDIS ===================== -->
+<div class="integration" id="int-upstash">
+  <div class="integration-header" onclick="toggleIntegration('int-upstash')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#9889;</span>
+    <div class="integration-info">
+      <div class="integration-name">Upstash Redis</div>
+      <div class="integration-desc">Rate limiting for login, registration, payments, APIs</div>
+    </div>
+    <span class="badge badge-optional">Optional</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-upstash')">Mark all</button>
+    <span class="section-progress" id="int-upstash-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="info-box">
+      Without Upstash, rate limiting is disabled (fail-open) &mdash; the app works normally but is vulnerable to brute-force attacks. Not critical during development, but you'll want this before going live with real users.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Create Upstash Redis Database</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Sign up for Upstash</div>
+          <div class="step-detail">
+            Go to <a href="https://console.upstash.com/login" target="_blank" class="url-link">console.upstash.com</a>.
+            Sign up with GitHub, Google, or email. The free tier includes 10,000 commands/day &mdash; plenty for rate limiting.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Create a new Redis database</div>
+          <div class="step-detail">
+            Once logged in, click <strong>"Create Database"</strong> (or you might land on the database creation page automatically). Set:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><strong>Name:</strong> <code>studio-saturn-ratelimit</code> (or whatever you like)</li>
+              <li><strong>Type:</strong> Regional</li>
+              <li><strong>Region:</strong> Pick the region closest to your Vercel deployment (e.g. <code>us-east-1</code> if you deployed to Vercel's default)</li>
+            </ul>
+            Click <strong>"Create"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Copy the REST credentials</div>
+          <div class="step-detail">
+            After creation, you'll see the database details page. Scroll to the <strong>"REST API"</strong> section. You need two values:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><strong>UPSTASH_REDIS_REST_URL</strong> &mdash; looks like <code>https://us1-xxxx.upstash.io</code></li>
+              <li><strong>UPSTASH_REDIS_REST_TOKEN</strong> &mdash; a long alphanumeric string</li>
+            </ul>
+            Click the copy icon next to each one. There might also be a <strong>".env"</strong> tab that shows both ready to copy.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Add to Vercel</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Set both Upstash env vars in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Add:
+            <table class="env-table">
+              <tr><th>Key</th><th>Value</th><th>Environments</th></tr>
+              <tr><td><code>UPSTASH_REDIS_REST_URL</code></td><td>Your REST URL</td><td>All</td></tr>
+              <tr><td><code>UPSTASH_REDIS_REST_TOKEN</code></td><td>Your REST token</td><td>All</td></tr>
+            </table>
+            Redeploy after adding. Rate limiting activates automatically &mdash; no further config needed.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== GOOGLE CALENDAR ===================== -->
+<div class="integration" id="int-google">
+  <div class="integration-header" onclick="toggleIntegration('int-google')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#128197;</span>
+    <div class="integration-info">
+      <div class="integration-name">Google Calendar</div>
+      <div class="integration-desc">Sync confirmed bookings and time blocks to your calendar</div>
+    </div>
+    <span class="badge badge-optional">Optional</span>
+    <button class="complete-all-btn" onclick="event.stopPropagation(); completeAll('int-google')">Mark all</button>
+    <span class="section-progress" id="int-google-progress"></span>
+  </div>
+  <div class="integration-body">
+
+    <div class="info-box">
+      This lets the artist (Jane) connect her Google Calendar so confirmed bookings and blocked time slots automatically appear as calendar events. Purely a convenience feature &mdash; the booking system works fine without it.
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Create Google Cloud Project</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Go to Google Cloud Console</div>
+          <div class="step-detail">
+            Navigate to <a href="https://console.cloud.google.com" target="_blank" class="url-link">console.cloud.google.com</a>.
+            Sign in with the Google account you want to manage this under (can be any account &mdash; doesn't have to be Jane's).
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Create a new project</div>
+          <div class="step-detail">
+            Click the project dropdown at the top of the page (might say "Select a project" or show an existing project name). Click <strong>"New Project"</strong> in the dialog that appears. Name it something like <code>Studio Saturn</code>. Leave organization as "No organization" if you don't have one. Click <strong>"Create"</strong>, then select the new project from the dropdown.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Enable APIs</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Enable the Google Calendar API</div>
+          <div class="step-detail">
+            Go to <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" class="url-link">APIs & Services &rarr; Library &rarr; Google Calendar API</a>.
+            Click <strong>"Enable"</strong>. Wait for it to activate.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Enable the Google People API (for email info)</div>
+          <div class="step-detail">
+            Go to <a href="https://console.cloud.google.com/apis/library/people.googleapis.com" target="_blank" class="url-link">APIs & Services &rarr; Library &rarr; People API</a>.
+            Click <strong>"Enable"</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Configure OAuth Consent Screen</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Set up the consent screen</div>
+          <div class="step-detail">
+            Go to <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="url-link">APIs & Services &rarr; OAuth consent screen</a>.
+            Select <strong>"External"</strong> user type (unless you have a Google Workspace org, then use "Internal"). Click <strong>"Create"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Fill in app information</div>
+          <div class="step-detail">
+            Fill in:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><strong>App name:</strong> <code>Studio Saturn</code></li>
+              <li><strong>User support email:</strong> your email</li>
+              <li><strong>Developer contact email:</strong> your email</li>
+            </ul>
+            You can skip the app logo and homepage. Click <strong>"Save and Continue"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Add scopes</div>
+          <div class="step-detail">
+            Click <strong>"Add or Remove Scopes"</strong>. In the filter box, search for and add:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><code>https://www.googleapis.com/auth/calendar.events</code></li>
+              <li><code>https://www.googleapis.com/auth/userinfo.email</code></li>
+            </ul>
+            Check both, click <strong>"Update"</strong> at the bottom, then <strong>"Save and Continue"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Add test users</div>
+          <div class="step-detail">
+            While the app is in "Testing" mode (not published), only test users can authorize. Click <strong>"Add Users"</strong> and enter Jane's Gmail address (the one linked to the Google Calendar she wants to sync). Click <strong>"Save and Continue"</strong>, then <strong>"Back to Dashboard"</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Create OAuth Credentials</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Navigate to Credentials</div>
+          <div class="step-detail">
+            Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="url-link">APIs & Services &rarr; Credentials</a>.
+            Click <strong>"+ Create Credentials"</strong> at the top, then select <strong>"OAuth client ID"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Configure the OAuth client</div>
+          <div class="step-detail">
+            Set:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><strong>Application type:</strong> <code>Web application</code></li>
+              <li><strong>Name:</strong> <code>Studio Saturn Web</code></li>
+            </ul>
+            Under <strong>"Authorized redirect URIs"</strong>, click <strong>"+ Add URI"</strong> and add your deployed URL:
+            <pre>https://YOUR-APP-URL.vercel.app/api/auth/google/callback<button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            Replace <code>YOUR-APP-URL</code> with your actual Vercel domain. Click <strong>"Create"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Copy Client ID and Client Secret</div>
+          <div class="step-detail">
+            A dialog will show your credentials. Copy both:
+            <ul style="margin: 6px 0 0 16px; font-size: 13px;">
+              <li><strong>Client ID</strong> &mdash; ends in <code>.apps.googleusercontent.com</code></li>
+              <li><strong>Client Secret</strong> &mdash; starts with <code>GOCSPX-</code></li>
+            </ul>
+            <div class="warn-box">If you close this dialog, you can always find the credentials again by clicking on the OAuth client name in the Credentials list.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-group">
+      <div class="step-group-title">Add to Vercel & Test</div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Set Google env vars in Vercel</div>
+          <div class="step-detail">
+            Go to <a href="https://vercel.com/dashboard" target="_blank" class="url-link">Vercel Dashboard</a> &rarr; your project &rarr; <strong>"Settings"</strong> &rarr; <strong>"Environment Variables"</strong>. Add:
+            <table class="env-table">
+              <tr><th>Key</th><th>Value</th><th>Environments</th></tr>
+              <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>Your <code>...apps.googleusercontent.com</code> ID</td><td>All</td></tr>
+              <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>Your <code>GOCSPX-...</code> secret</td><td>All</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <input type="checkbox" onchange="updateProgress()">
+        <div class="step-content">
+          <div class="step-label">Connect from the deployed app</div>
+          <div class="step-detail">
+            Redeploy, then on the deployed site, log in as the artist (admin) user. Go to <strong>Settings</strong> or the calendar integration section of the dashboard. Click <strong>"Connect Google Calendar"</strong>. This will redirect to Google's OAuth flow &mdash; sign in with the test user email you added and grant access.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ENV VAR SUMMARY ===================== -->
+<div class="integration" id="int-summary">
+  <div class="integration-header" onclick="toggleIntegration('int-summary')">
+    <span class="chevron">&#9654;</span>
+    <span class="integration-icon">&#128203;</span>
+    <div class="integration-info">
+      <div class="integration-name">Full Environment Variable Reference</div>
+      <div class="integration-desc">Every env var in one place for quick copy-paste</div>
+    </div>
+    <span class="badge" style="background:#f3f3f3;color:#666;">Reference</span>
+  </div>
+  <div class="integration-body">
+    <pre style="line-height: 2;">
+# === Database (Neon) - CONFIGURED ===
+DATABASE_URL=
+POSTGRES_PRISMA_URL=
+POSTGRES_URL_NON_POOLING=
+
+# === Auth - CONFIGURED ===
+AUTH_SECRET=
+NEXTAUTH_URL=
+
+# === Encryption - CONFIGURED ===
+FIELD_ENCRYPTION_KEY=
+
+# === Stripe (use test keys!) ===
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# === Vercel Blob - CONFIGURED ===
+BLOB_READ_WRITE_TOKEN=
+
+# === Resend (Email) ===
+RESEND_API_KEY=
+
+# === Cron Jobs ===
+CRON_SECRET=
+
+# === Twilio (SMS) ===
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+
+# === Upstash Redis (Rate Limiting) ===
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# === Google Calendar ===
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+<button class="copy-btn" onclick="copyCode(this)">Copy All</button></pre>
+  </div>
+</div>
+
+<footer>
+  Studio Saturn Integration Guide &middot; Generated from codebase analysis
+</footer>
+
+<script>
+// Toggle integration sections
+function toggleIntegration(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// Toggle sub-sections
+function toggleSubSection(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// Copy code blocks
+function copyCode(btn) {
+  const pre = btn.closest('pre');
+  const text = pre.textContent.replace('Copy', '').replace('Copy All', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = pre.querySelector('.copy-btn') === btn && text.includes('\n') ? 'Copy All' : 'Copy', 1500);
+  });
+}
+
+// Toggle all checkboxes in a section
+function completeAll(sectionId) {
+  const section = document.getElementById(sectionId);
+  const boxes = section.querySelectorAll('input[type="checkbox"]');
+  const allChecked = Array.from(boxes).every(cb => cb.checked);
+  boxes.forEach(cb => cb.checked = !allChecked);
+  updateProgress();
+}
+
+// Update progress tracking
+function updateProgress() {
+  const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+  const checkedCount = document.querySelectorAll('input[type="checkbox"]:checked').length;
+
+  // Global progress
+  const pct = allCheckboxes.length ? Math.round((checkedCount / allCheckboxes.length) * 100) : 0;
+  document.getElementById('globalProgress').style.width = pct + '%';
+  document.getElementById('globalProgressText').textContent =
+    `${checkedCount} of ${allCheckboxes.length} steps completed (${pct}%)`;
+
+  // Per-section progress
+  document.querySelectorAll('.integration').forEach(section => {
+    const boxes = section.querySelectorAll('input[type="checkbox"]');
+    const checked = section.querySelectorAll('input[type="checkbox"]:checked');
+    const progressEl = document.getElementById(section.id + '-progress');
+    if (progressEl && boxes.length > 0) {
+      progressEl.textContent = `${checked.length}/${boxes.length}`;
+      if (checked.length === boxes.length) {
+        progressEl.style.color = 'var(--green)';
+        progressEl.textContent += ' \u2713';
+      } else {
+        progressEl.style.color = 'var(--sage)';
+      }
+    }
+  });
+
+  // Update complete-all button states
+  document.querySelectorAll('.complete-all-btn').forEach(btn => {
+    const section = btn.closest('.integration');
+    const boxes = section.querySelectorAll('input[type="checkbox"]');
+    const allChecked = boxes.length > 0 && Array.from(boxes).every(cb => cb.checked);
+    btn.classList.toggle('all-done', allChecked);
+    btn.textContent = allChecked ? 'Undo all' : 'Mark all';
+  });
+
+  // Strikethrough completed steps
+  allCheckboxes.forEach(cb => {
+    const content = cb.closest('.step')?.querySelector('.step-content');
+    if (content) {
+      content.classList.toggle('checked', cb.checked);
+    }
+  });
+}
+
+// Initialize progress on load
+updateProgress();
+</script>
+</body>
+</html>

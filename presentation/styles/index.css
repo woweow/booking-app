@@ -1,0 +1,106 @@
+:root {
+  /* Japanese-inspired palette */
+  --color-cream: #F5F0E8;
+  --color-cream-warm: #EDE5D8;
+  --color-brown-light: #A0896C;
+  --color-brown-medium: #6B5744;
+  --color-brown-dark: #2C1810;
+  --color-green: #4A6741;
+  --color-green-muted: #7A8F73;
+  --color-green-bg: #E8EDE4;
+  --color-green-dark: #354632;
+}
+
+/* Override Slidev defaults */
+.slidev-layout {
+  background: var(--color-cream);
+  color: var(--color-brown-dark);
+}
+
+/* Headings */
+.slidev-layout h1 {
+  color: var(--color-brown-dark);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.slidev-layout h2 {
+  color: var(--color-brown-medium);
+  font-weight: 400;
+}
+
+/* Subtle text */
+.slidev-layout .muted {
+  color: var(--color-brown-light);
+}
+
+/* Green background variant */
+.slidev-layout.bg-forest {
+  background: var(--color-green-dark);
+  color: var(--color-cream);
+}
+
+.slidev-layout.bg-forest h1 {
+  color: var(--color-cream);
+}
+
+.slidev-layout.bg-forest h2 {
+  color: var(--color-green-muted);
+}
+
+/* Warm cream variant */
+.slidev-layout.bg-warm {
+  background: var(--color-cream-warm);
+}
+
+/* Green accent background */
+.slidev-layout.bg-green-soft {
+  background: var(--color-green-bg);
+}
+
+/* Service label pills */
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.service-pill {
+  background: var(--color-cream-warm);
+  border: 1px solid var(--color-brown-light);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--color-brown-dark);
+  letter-spacing: 0.01em;
+}
+
+.bg-forest .service-pill {
+  background: rgba(245, 240, 232, 0.1);
+  border-color: rgba(245, 240, 232, 0.2);
+  color: var(--color-cream);
+}
+
+/* Big number styling */
+.big-number {
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-green);
+}
+
+/* Accent text */
+.accent {
+  color: var(--color-green);
+}
+
+/* Subtle divider */
+.divider {
+  width: 3rem;
+  height: 2px;
+  background: var(--color-brown-light);
+  margin: 1.5rem auto;
+  opacity: 0.5;
+}
